@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AirCast Mobile - Kết Nối iPhone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="mobile-wrapper">
+    <!-- Header -->
+    <header class="mobile-header">
+      <div class="header-brand">
+        <div class="logo-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"></path>
+            <polygon points="12 15 17 21 7 21 12 15"></polygon>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <h2>AirCast Mobile</h2>
+          <span class="status-connected">● Đã kết nối với máy tính</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hidden Video for Native iOS AirPlay Trigger -->
+    <video id="airplay-hidden-video" x-webkit-airplay="allow" playsinline preload="auto" style="display:none;"></video>
+
+    <main class="content-scroll">
+      <!-- Feature 1: Native AirPlay Picker Trigger -->
+      <div class="action-card highlight-card">
+        <div class="card-badge">Khuyên Dùng</div>
+        <div class="card-icon airplay-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <polygon points="12 15 17 21 7 21 12 15"></polygon>
+          </svg>
+        </div>
+        <h3>Phản Chiếu Màn Hình AirPlay</h3>
+        <p>Bấm nút bên dưới để mở ngay bảng chọn thiết bị AirPlay trên iPhone mà không cần vuốt thanh thông báo.</p>
+        <button class="btn-action btn-airplay" id="btn-trigger-airplay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline>
+          </svg>
+          <span>Mở Trình Chọn AirPlay iOS</span>
+        </button>
+      </div>
+
+      <!-- Feature 2: Live Camera Stream -->
+      <div class="action-card">
+        <div class="card-icon camera-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </div>
+        <h3>Chiếu Trực Tiếp Camera iPhone</h3>
+        <p>Biến iPhone thành Webcam siêu nét không dây phát trực tiếp lên máy tính.</p>
+        
+        <div id="camera-preview-box" class="camera-preview-box" style="display:none;">
+          <video id="camera-video" playsinline autoplay muted></video>
+          <div class="camera-overlay">
+            <span class="live-tag">● LIVE STREAM</span>
+            <button id="btn-switch-camera" class="btn-icon-switch" title="Đổi camera">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21 1.05 4.17 2.69 5.5"></path>
+                <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-2.21-1.05-4.17-2.69-5.5"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-action btn-camera" id="btn-toggle-camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+          <span id="txt-toggle-camera">Bật Chiếu Camera Lên PC</span>
+        </button>
+      </div>
+
+      <!-- Feature 3: Photo / Media Cast -->
+      <div class="action-card">
+        <div class="card-icon media-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <h3>Trình Chiếu Ảnh Lên Máy Tính</h3>
+        <p>Chọn bất kỳ tấm ảnh nào từ Bộ Sưu Tập để phóng to trên màn hình máy tính ngay lập tức.</p>
+        
+        <label class="btn-action btn-media">
+          <input type="file" id="file-photo-input" accept="image/*" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Chọn Ảnh Để Chiếu Lên PC</span>
+        </label>
+      </div>
+
+      <!-- Feature 4: Full System Mirror Guide -->
+      <div class="action-card guide-card">
+        <h3>Phản Chiếu Toàn Bộ Hệ Thống</h3>
+        <p class="guide-note">Để xem toàn bộ giao diện iPhone (TikTok, game, ứng dụng):</p>
+        <div class="quick-steps">
+          <div class="q-step">
+            <span class="q-num">1</span>
+            <span>Vuốt từ góc trên bên phải màn hình iPhone xuống để mở <strong>Trung tâm điều khiển</strong>.</span>
+          </div>
+          <div class="q-step">
+            <span class="q-num">2</span>
+            <span>Nhấn vào biểu tượng <strong>Phản chiếu màn hình (2 ô chữ nhật)</strong>.</span>
+          </div>
+          <div class="q-step">
+            <span class="q-num">3</span>
+            <span>Chọn máy tính của bạn trong danh sách để phát toàn màn hình!</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="mobile.js"></script>
+</body>
+</html>

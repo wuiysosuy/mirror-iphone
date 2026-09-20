@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirCast Studio - Phản Chiếu Màn Hình iPhone Lên Máy Tính</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"></path>
+            <polygon points="12 15 17 21 7 21 12 15"></polygon>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>AirCast</h1>
+          <span class="badge-pro">PRO</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="tab-dashboard" id="btn-nav-dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span>Bảng Điều Khiển</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-guide" id="btn-nav-guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <span>Hướng Dẫn Kết Nối</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-diagnostics" id="btn-nav-diagnostics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>Tường Lửa & Bonjour</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-settings" id="btn-nav-settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Cài Đặt</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-status-card">
+          <div class="status-indicator-dot" id="sidebar-status-dot"></div>
+          <div class="status-text-group">
+            <span class="status-title" id="sidebar-status-title">Chờ Khởi Động</span>
+            <span class="status-desc" id="sidebar-status-desc">AirPlay Receiver</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="top-header">
+        <div class="header-title-group">
+          <h2 id="page-title">Bảng Điều Khiển</h2>
+          <p id="page-subtitle">Phản chiếu không dây màn hình & âm thanh iPhone qua AirPlay</p>
+        </div>
+
+        <div class="header-actions">
+          <div class="phone-connected-badge" id="phone-badge" style="display:none;">
+            <span class="badge-dot"></span>
+            <span>iPhone Đang Kết Nối</span>
+          </div>
+
+          <div class="network-chip" id="chip-ip-address" title="Nhấp để sao chép địa chỉ IP">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <line x1="12" y1="20" x2="12.01" y2="20"></line>
+            </svg>
+            <span id="header-ip-text">Wi-Fi: Đang quét...</span>
+          </div>
+
+          <button class="btn-quick-refresh" id="btn-refresh-info" title="Làm mới trạng thái">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section class="tab-pane active" id="tab-dashboard">
+        <!-- Bonjour Missing Banner (Dynamic) -->
+        <div class="bonjour-alert-banner" id="bonjour-alert-banner" style="display:none;">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-info">
+            <strong>Chưa cài đặt Apple Bonjour:</strong> Dịch vụ này cần thiết để iPhone tìm thấy máy tính.
+          </div>
+          <button class="btn-install-bonjour-quick" id="btn-install-bonjour-quick">Cài Đặt Bonjour Ngay</button>
+        </div>
+
+        <div class="dashboard-top-grid">
+          <!-- Hero Server Card -->
+          <div class="card hero-server-card">
+            <div class="hero-left">
+              <div class="device-name-tag">
+                <span id="hero-status-pill" class="status-pill status-stopped">Dịch Vụ Đang Tắt</span>
+              </div>
+              <h3 class="hero-title">Động Cơ Phản Chiếu AirPlay 2</h3>
+              <p class="hero-desc">Bật máy chủ để iPhone nhìn thấy máy tính trong phần <strong>Phản chiếu màn hình (Screen Mirroring)</strong> của iOS.</p>
+
+              <div class="server-specs">
+                <div class="spec-item">
+                  <span class="spec-label">Tên máy hiển thị:</span>
+                  <span class="spec-val" id="val-device-name">AirCast-PC</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">Địa chỉ IP:</span>
+                  <span class="spec-val" id="val-ip-address">192.168.x.x</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-right">
+              <button class="btn-power-toggle" id="btn-toggle-server">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                  <line x1="12" y1="2" x2="12" y2="12"></line>
+                </svg>
+                <span id="btn-toggle-text">Bật Máy Chủ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- QR Code Connection Card -->
+          <div class="card qr-connect-card">
+            <div class="qr-card-header">
+              <div class="qr-title-group">
+                <div class="qr-icon-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Quét QR Kết Nối Nhanh</h4>
+                  <p>Mở camera iPhone quét mã để kết nối tức thì</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="qr-image-wrapper">
+              <img id="qr-code-img" src="" alt="Đang tạo mã QR...">
+              <div class="qr-scan-line"></div>
+            </div>
+
+            <div class="qr-link-box" id="box-qr-link" title="Bấm để sao chép đường dẫn">
+              <span id="txt-qr-url">http://192.168.x.x:5050</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Cast Card -->
+        <div class="card live-cast-card" id="live-cast-container" style="display:none;">
+          <div class="live-cast-header">
+            <div class="cast-title">
+              <span class="live-pulse"></span>
+              <h4 id="cast-stream-title">Chiếu Trực Tiếp Từ iPhone</h4>
+            </div>
+            <button class="btn-close-cast" id="btn-close-cast">Đóng Trình Chiếu</button>
+          </div>
+          <div class="live-cast-body">
+            <img id="live-cast-img" src="" alt="Khung hình từ iPhone">
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metric-grid">
+          <div class="card metric-card">
+            <div class="metric-icon icon-video">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-title">Video Stream</span>
+              <span class="metric-value">H.264 60 FPS</span>
+              <span class="metric-sub">Độ trễ thấp, siêu mượt</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon icon-audio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-title">Âm Thanh</span>
+              <span class="metric-value">Kênh Đôi (Stereo)</span>
+              <span class="metric-sub">Truyền cùng lúc với màn hình</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon icon-zeroconf">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-title">Không Cài Thêm App</span>
+              <span class="metric-value">Quét QR & AirPlay</span>
+              <span class="metric-sub">Camera iPhone & Safari</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Logs Preview -->
+        <div class="card logs-card">
+          <div class="logs-header">
+            <div class="logs-title-group">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+              <span>Nhật Ký Dịch Vụ (Live Log)</span>
+            </div>
+            <button class="btn-clear-logs" id="btn-clear-logs">Xóa Nhật Ký</button>
+          </div>
+          <div class="logs-body" id="logs-container">
+            <div class="log-line info">[Hệ Thống] Ứng dụng AirCast Studio đã sẵn sàng.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: IPHONE CONNECTION GUIDE -->
+      <section class="tab-pane" id="tab-guide">
+        <div class="guide-container">
+          <div class="guide-steps-column">
+            <div class="guide-step-card qr-step-highlight">
+              <div class="step-badge qr-badge">QR</div>
+              <div class="step-content">
+                <h4>Cách 1: Quét Mã QR Bằng Camera iPhone (Nhanh Nhất)</h4>
+                <p>Mở ứng dụng <strong>Camera</strong> mặc định trên iPhone, quét mã QR trên Bảng điều khiển và nhấn vào thông báo màu vàng để mở giao diện điều khiển tức thì.</p>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="step-badge">1</div>
+              <div class="step-content">
+                <h4>Cách 2: Phản Chiếu Qua Control Center</h4>
+                <p>Đảm bảo cả iPhone và máy tính đang kết nối vào cùng một mạng Wi-Fi.</p>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="step-badge">2</div>
+              <div class="step-content">
+                <h4>Mở Trung Tâm Điều Khiển (Control Center)</h4>
+                <p>Vuốt từ góc trên bên phải màn hình iPhone xuống (đối với iPhone X trở lên).</p>
+              </div>
+            </div>
+
+            <div class="guide-step-card">
+              <div class="step-badge">3</div>
+              <div class="step-content">
+                <h4>Chọn "Phản Chiếu Màn Hình"</h4>
+                <p>Chạm vào biểu tượng <strong>hai hình chữ nhật lồng vào nhau</strong> và chọn tên máy tính <code id="guide-device-name-code">AirCast-PC</code>.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phone Mockup -->
+          <div class="guide-visual-card">
+            <div class="iphone-frame">
+              <div class="iphone-island"></div>
+              <div class="iphone-screen">
+                <div class="cc-header">
+                  <span>9:41</span>
+                  <div class="cc-icons">
+                    <span>5G</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                <div class="cc-grid">
+                  <div class="cc-tile cc-conn">
+                    <div class="tile-icon">📶</div>
+                    <div class="tile-icon active">📡</div>
+                  </div>
+                  <div class="cc-tile cc-media">
+                    <span>Âm Nhạc</span>
+                  </div>
+                  <div class="cc-tile cc-mirror highlight-pulse">
+                    <div class="mirror-icon-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                      </svg>
+                    </div>
+                    <span>Phản Chiếu Màn Hình</span>
+                  </div>
+                </div>
+
+                <div class="cc-popup">
+                  <div class="popup-title">Thiết bị phản chiếu</div>
+                  <div class="device-choice active">
+                    <span class="dot"></span>
+                    <span id="mockup-device-name">AirCast-PC</span>
+                    <span class="check">✓</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: DIAGNOSTICS & FIREWALL & BONJOUR -->
+      <section class="tab-pane" id="tab-diagnostics">
+        <div class="diag-grid">
+          <!-- Bonjour Card -->
+          <div class="card diag-card">
+            <div class="diag-card-header">
+              <div class="diag-icon-shield" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14h-2v-2h2zm0-4h-2V7h2z"></path>
+                </svg>
+              </div>
+              <div class="diag-header-info">
+                <h3>Dịch Vụ Apple Bonjour (mDNS)</h3>
+                <p>Cần thiết để iPhone tìm kiếm và nhận diện máy tính qua AirPlay.</p>
+              </div>
+            </div>
+
+            <div class="firewall-status-box" id="bonjour-status-box">
+              <div class="status-badge" id="bonjour-status-badge">Đang kiểm tra...</div>
+              <p id="bonjour-status-msg">Hệ thống đang kiểm tra trạng thái dịch vụ Bonjour.</p>
+            </div>
+
+            <div class="diag-actions">
+              <button class="btn-primary" id="btn-install-bonjour-diag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Cài Đặt Apple Bonjour (Bonjour64.msi)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Firewall Card -->
+          <div class="card diag-card">
+            <div class="diag-card-header">
+              <div class="diag-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <div class="diag-header-info">
+                <h3>Trạng Thái Tường Lửa (Windows Defender)</h3>
+                <p>Tường lửa cần mở các cổng AirPlay (7000, 5000, 5050, 5353).</p>
+              </div>
+            </div>
+
+            <div class="firewall-status-box" id="firewall-status-box">
+              <div class="status-badge" id="firewall-status-badge">Đang kiểm tra...</div>
+              <p id="firewall-status-msg">Hệ thống đang kiểm tra quy tắc tường lửa.</p>
+            </div>
+
+            <div class="diag-actions">
+              <button class="btn-primary" id="btn-fix-firewall">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                <span>Tự Động Mở Quyền Tường Lửa (1-Click Fix)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Network Adapters -->
+          <div class="card diag-card full-width">
+            <div class="diag-card-header">
+              <div class="diag-icon-wifi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                  <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                </svg>
+              </div>
+              <div class="diag-header-info">
+                <h3>Các Card Mạng Đang Hoạt Động</h3>
+                <p>Danh sách địa chỉ IP nội bộ của máy tính.</p>
+              </div>
+            </div>
+
+            <div class="adapters-list" id="adapters-container"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SETTINGS -->
+      <section class="tab-pane" id="tab-settings">
+        <div class="settings-card card">
+          <h3>Cài Đặt Hệ Thống</h3>
+
+          <div class="settings-group">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Tên Máy Tính Hiển Thị</label>
+                <span>Tên hiển thị trên iPhone khi tìm kiếm phản chiếu</span>
+              </div>
+              <div class="setting-control">
+                <input type="text" id="input-device-name" class="text-input" value="AirCast-PC">
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Chất Lượng Trình Chiếu</label>
+                <span>Tối ưu độ sắc nét và độ mượt khung hình</span>
+              </div>
+              <div class="setting-control">
+                <select id="select-quality" class="select-input">
+                  <option value="1080p60" selected>1080p Full HD (60 FPS) - Khuyên Dùng</option>
+                  <option value="720p60">720p HD (60 FPS) - Tiết kiệm băng thông</option>
+                  <option value="1440p60">2K QHD (60 FPS) - Siêu nét</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Chế Độ Ghi Log Nâng Cao (Debug)</label>
+                <span>Hiển thị thông tin kỹ thuật chi tiết phục vụ kiểm tra lỗi</span>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="check-debug-mode">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-footer">
+            <button class="btn-primary" id="btn-save-settings">Lưu Cài Đặt</button>
+            <button class="btn-secondary" id="btn-restart-server">Khởi Động Lại Dịch Vụ</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

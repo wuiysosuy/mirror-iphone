@@ -1,0 +1,88 @@
+{
+  "name": "aircast-studio",
+  "version": "1.0.0",
+  "description": "Ứng dụng phản chiếu màn hình iPhone lên máy tính qua AirPlay 2",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --debug",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis"
+  },
+  "keywords": [
+    "airplay",
+    "mirror",
+    "iphone",
+    "screen-mirroring",
+    "ios",
+    "electron"
+  ],
+  "author": "AirCast Studio",
+  "license": "MIT",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.aircast.studio",
+    "productName": "AirCast Studio",
+    "copyright": "Copyright © 2026 AirCast Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "Bonjour64.msi",
+        "to": "Bonjour64.msi"
+      },
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AirCast Studio",
+      "include": "build/installer.nsh"
+    }
+  }
+}
