@@ -3,6 +3,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const ServerManager = require('./server-manager');
 const MobileWebServer = require('./web-server');
+const AppUpdater = require('./updater');
 const { getNetworkInfo, checkFirewallStatus, checkBonjourStatus } = require('./network-utils');
 
 function getBaseDir() {
@@ -11,6 +12,7 @@ function getBaseDir() {
 
 let mainWindow = null;
 let serverManager = null;
+let appUpdater = null;
 const mobileWebServer = new MobileWebServer(5050);
 let qrInfo = null;
 
@@ -31,6 +33,11 @@ function createWindow() {
     },
     frame: true,
     show: false
+  });
+
+  appUpdater = new AppUpdater(mainWindow, {
+    owner: 'wuiysosuy',
+    repo: 'mirror-iphone'
   });
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -157,6 +164,37 @@ ipcMain.handle('window:close', () => {
 
 ipcMain.handle('system:open-external', (event, url) => {
   shell.openExternal(url);
+});
+
+// Updater Handlers
+ipcMain.handle('updater:get-version', () => {
+  return app.getVersion() || '1.0.0';
+});
+
+ipcMain.handle('updater:check', async () => {
+  if (!appUpdater) {
+    appUpdater = new AppUpdater(mainWindow, { owner: 'wuiysosuy', repo: 'mirror-iphone' });
+  }
+  return appUpdater.checkForUpdates();
+});
+
+ipcMain.handle('updater:download', async (event, data) => {
+  if (!appUpdater) {
+    appUpdater = new AppUpdater(mainWindow, { owner: 'wuiysosuy', repo: 'mirror-iphone' });
+  }
+  const downloadUrl = (data && data.downloadUrl) || data;
+  const version = (data && data.version) || 'new';
+  return appUpdater.downloadUpdate(downloadUrl, version);
+});
+
+ipcMain.handle('updater:cancel-download', async () => {
+  if (appUpdater) return appUpdater.cancelDownload();
+  return { success: true };
+});
+
+ipcMain.handle('updater:install', async (event, filePath) => {
+  if (appUpdater) return appUpdater.installUpdate(filePath);
+  return { success: false, error: 'Chưa khởi tạo AppUpdater' };
 });
 
 // App Lifecycle

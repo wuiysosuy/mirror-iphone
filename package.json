@@ -37,7 +37,15 @@
     },
     "files": [
       "src/**/*",
-      "package.json"
+      "package.json",
+      "version.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "wuiysosuy",
+        "repo": "mirror-iphone"
+      }
     ],
     "extraResources": [
       {

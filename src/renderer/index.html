@@ -68,6 +68,20 @@
             <span class="status-desc" id="sidebar-status-desc">AirPlay Receiver</span>
           </div>
         </div>
+
+        <div class="app-version-card">
+          <div class="app-version-info">
+            <span class="version-label">Phiên bản</span>
+            <span class="version-number" id="sidebar-version-number">v1.0.0</span>
+          </div>
+          <button class="btn-sidebar-update" id="btn-sidebar-check-update" title="Kiểm tra bản cập nhật">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -96,6 +110,18 @@
             <span id="header-ip-text">Wi-Fi: Đang quét...</span>
           </div>
 
+          <button class="btn-update-header" id="btn-check-update" title="Kiểm tra bản cập nhật">
+            <span class="update-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span class="update-badge-dot" id="header-update-badge" style="display:none;"></span>
+            </span>
+            <span id="header-update-text">Cập Nhật</span>
+          </button>
+
           <button class="btn-quick-refresh" id="btn-refresh-info" title="Làm mới trạng thái">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"></polyline>
@@ -105,6 +131,21 @@
           </button>
         </div>
       </header>
+
+      <!-- Global Update Alert Banner -->
+      <div class="update-banner" id="global-update-banner" style="display: none;">
+        <div class="update-banner-content">
+          <div class="update-banner-icon">🚀</div>
+          <div class="update-banner-info">
+            <span class="update-banner-title">Đã có bản cập nhật mới <strong id="banner-new-version">v1.0.1</strong>!</span>
+            <span class="update-banner-desc" id="banner-release-desc">Cải thiện độ mượt và bổ sung tính năng mới.</span>
+          </div>
+        </div>
+        <div class="update-banner-actions">
+          <button class="btn-banner-action" id="btn-banner-view-update">Cập Nhật Ngay</button>
+          <button class="btn-banner-dismiss" id="btn-banner-dismiss" title="Đóng">✕</button>
+        </div>
+      </div>
 
       <!-- TAB 1: DASHBOARD -->
       <section class="tab-pane active" id="tab-dashboard">
@@ -479,8 +520,143 @@
             <button class="btn-secondary" id="btn-restart-server">Khởi Động Lại Dịch Vụ</button>
           </div>
         </div>
+
+        <!-- Update Card in Settings -->
+        <div class="settings-card card update-settings-card">
+          <div class="card-header-with-badge">
+            <h3>Cập Nhật Phần Mềm</h3>
+            <span class="update-status-pill" id="settings-update-pill">Bản Mới Nhất</span>
+          </div>
+
+          <div class="settings-group">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Phiên Bản Hiện Tại</label>
+                <span id="settings-current-ver-desc">Đang chạy AirCast Studio v1.0.0</span>
+              </div>
+              <div class="setting-control">
+                <span class="version-badge-tag" id="settings-current-version-tag">v1.0.0</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Tự Động Kiểm Tra Cập Nhật</label>
+                <span>Tự động phát hiện khi có bản nâng cấp mới mỗi khi mở ứng dụng</span>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="check-auto-update" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label>Kênh Phát Hành & Cập Nhật</label>
+                <span>GitHub Releases (wuiysosuy/mirror-iphone)</span>
+              </div>
+              <div class="setting-control">
+                <button class="btn-secondary btn-sm" id="btn-open-github-repo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:6px;">
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                  </svg>
+                  Ghé Thăm GitHub
+                </button>
+              </div>
+            </div>
+
+            <div class="update-check-status-row" id="update-status-row">
+              <div class="update-status-icon" id="update-status-icon">✓</div>
+              <div class="update-status-text" id="update-status-message">Hệ thống đang ở phiên bản mới nhất.</div>
+            </div>
+          </div>
+
+          <div class="settings-footer">
+            <button class="btn-primary" id="btn-settings-check-update">
+              <span class="btn-icon-spin" id="spin-check-update" style="display:none;">🔄</span>
+              <span id="btn-text-check-update">Kiểm Tra Cập Nhật Ngay</span>
+            </button>
+            <button class="btn-accent" id="btn-settings-update-now" style="display:none;">Tải & Cài Đặt Bản Mới</button>
+          </div>
+        </div>
       </section>
     </main>
+  </div>
+
+  <!-- UPDATE MODAL (Glassmorphic Dialog) -->
+  <div class="modal-overlay" id="update-modal" style="display: none;">
+    <div class="modal-dialog update-dialog">
+      <button class="modal-close-btn" id="btn-close-update-modal" title="Đóng">✕</button>
+
+      <div class="update-modal-header">
+        <div class="update-icon-glow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <div class="update-header-info">
+          <div class="update-title-row">
+            <h3>Bản Cập Nhật Mới Đã Sẵn Sàng!</h3>
+            <span class="modal-version-tag" id="modal-new-version-tag">v1.0.1</span>
+          </div>
+          <p class="update-subtext">Phiên bản hiện tại: <span id="modal-current-version">v1.0.0</span></p>
+        </div>
+      </div>
+
+      <div class="update-modal-body">
+        <div class="release-notes-box">
+          <div class="notes-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Nội dung cập nhật & Tính năng mới</span>
+          </div>
+          <div class="notes-content" id="modal-release-notes">
+            • Tối ưu hóa hiệu năng phản chiếu không dây AirPlay 2
+            • Sửa một số lỗi giao diện và tăng tốc kết nối
+          </div>
+        </div>
+
+        <!-- Download Progress Section (Visible while downloading) -->
+        <div class="download-progress-box" id="download-progress-box" style="display:none;">
+          <div class="progress-info-row">
+            <span class="progress-title" id="progress-status-title">Đang tải bản cập nhật...</span>
+            <span class="progress-percentage" id="progress-percentage">0%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+          <div class="progress-meta-row">
+            <span id="progress-transferred">0 MB / 0 MB</span>
+            <span id="progress-speed">0 MB/s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="update-modal-footer">
+        <button class="btn-secondary" id="btn-modal-cancel">Để Sau</button>
+        <button class="btn-outline" id="btn-modal-open-github">Xem Trên GitHub</button>
+        <button class="btn-primary btn-glow" id="btn-modal-start-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:6px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span id="btn-modal-download-text">Tải & Cập Nhật Tự Động</span>
+        </button>
+        <button class="btn-success btn-glow" id="btn-modal-install-now" style="display:none;">
+          ⚡ Cài Đặt & Khởi Động Lại
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

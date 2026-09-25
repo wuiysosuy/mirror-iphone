@@ -53,5 +53,20 @@ contextBridge.exposeInMainWorld('aircast', {
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
-  openExternal: (url) => ipcRenderer.invoke('system:open-external', url)
+  openExternal: (url) => ipcRenderer.invoke('system:open-external', url),
+
+  // Updater API
+  updater: {
+    getVersion: () => ipcRenderer.invoke('updater:get-version'),
+    checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+    downloadUpdate: (data) => ipcRenderer.invoke('updater:download', data),
+    cancelDownload: () => ipcRenderer.invoke('updater:cancel-download'),
+    installUpdate: (filePath) => ipcRenderer.invoke('updater:install', filePath),
+    onDownloadProgress: (callback) => {
+      const handler = (event, progress) => callback(progress);
+      ipcRenderer.on('updater:download-progress', handler);
+      return () => ipcRenderer.removeListener('updater:download-progress', handler);
+    }
+  }
 });
+
