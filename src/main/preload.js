@@ -67,6 +67,37 @@ contextBridge.exposeInMainWorld('aircast', {
       ipcRenderer.on('updater:download-progress', handler);
       return () => ipcRenderer.removeListener('updater:download-progress', handler);
     }
+  },
+
+  // Bluetooth Mouse Control
+  bluetooth: {
+    getStatus: () => ipcRenderer.invoke('bluetooth:get-status'),
+    start: (name) => ipcRenderer.invoke('bluetooth:start', name),
+    stop: () => ipcRenderer.invoke('bluetooth:stop'),
+    mouseMove: (dx, dy) => ipcRenderer.invoke('bluetooth:mouse-move', dx, dy),
+    mouseDown: (button) => ipcRenderer.invoke('bluetooth:mouse-down', button),
+    mouseUp: (button) => ipcRenderer.invoke('bluetooth:mouse-up', button),
+    mouseWheel: (delta) => ipcRenderer.invoke('bluetooth:mouse-wheel', delta),
+    tap: () => ipcRenderer.invoke('bluetooth:tap'),
+    home: () => ipcRenderer.invoke('bluetooth:home'),
+    swipe: (direction) => ipcRenderer.invoke('bluetooth:swipe', direction),
+    setSensitivity: (val) => ipcRenderer.invoke('bluetooth:set-sensitivity', val),
+    syncCursor: () => ipcRenderer.invoke('bluetooth:sync-cursor'),
+    onStatusChange: (callback) => {
+      const handler = (event, status) => callback(status);
+      ipcRenderer.on('bluetooth:status-changed', handler);
+      return () => ipcRenderer.removeListener('bluetooth:status-changed', handler);
+    },
+    onClientsChange: (callback) => {
+      const handler = (event, count) => callback(count);
+      ipcRenderer.on('bluetooth:clients-changed', handler);
+      return () => ipcRenderer.removeListener('bluetooth:clients-changed', handler);
+    },
+    onLog: (callback) => {
+      const handler = (event, log) => callback(log);
+      ipcRenderer.on('bluetooth:log', handler);
+      return () => ipcRenderer.removeListener('bluetooth:log', handler);
+    }
   }
 });
 

@@ -72,7 +72,7 @@
         <div class="app-version-card">
           <div class="app-version-info">
             <span class="version-label">Phiên bản</span>
-            <span class="version-number" id="sidebar-version-number">v1.0.0</span>
+            <span class="version-number" id="sidebar-version-number">v1.1.0</span>
           </div>
           <button class="btn-sidebar-update" id="btn-sidebar-check-update" title="Kiểm tra bản cập nhật">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -98,6 +98,11 @@
           <div class="phone-connected-badge" id="phone-badge" style="display:none;">
             <span class="badge-dot"></span>
             <span>iPhone Đang Kết Nối</span>
+          </div>
+
+          <div class="bt-mouse-header-badge" id="header-bt-mouse-badge" title="Trạng thái chuột Bluetooth cho iPhone">
+            <span class="badge-dot" id="header-bt-mouse-dot"></span>
+            <span id="header-bt-mouse-text">Chuột: Tắt</span>
           </div>
 
           <div class="network-chip" id="chip-ip-address" title="Nhấp để sao chép địa chỉ IP">
@@ -225,17 +230,193 @@
           </div>
         </div>
 
-        <!-- Live Cast Card -->
-        <div class="card live-cast-card" id="live-cast-container" style="display:none;">
-          <div class="live-cast-header">
-            <div class="cast-title">
-              <span class="live-pulse"></span>
-              <h4 id="cast-stream-title">Chiếu Trực Tiếp Từ iPhone</h4>
+        <!-- Bluetooth Mouse & Screen Mirror Section -->
+        <div class="card iphone-control-card" id="iphone-control-card">
+          <div class="iphone-control-header">
+            <div class="header-left-meta">
+              <div class="device-name-tag">
+                <span id="bt-mouse-status-pill" class="status-pill status-stopped">Chuột Bluetooth: Đang Tắt</span>
+              </div>
+              <h3 class="hero-title">Điều Khiển Trực Tiếp Trên Màn Hình iPhone</h3>
+              <p class="hero-desc">Rê chuột, chạm và vuốt <strong>trực tiếp lên màn hình iPhone</strong> bên dưới. Con trỏ và thao tác cảm ứng sẽ phản hồi tức thì.</p>
             </div>
-            <button class="btn-close-cast" id="btn-close-cast">Đóng Trình Chiếu</button>
+
+            <div class="header-right-meta">
+              <div class="sensitivity-picker">
+                <span class="sens-label">Tốc độ:</span>
+                <select id="select-touchpad-sensitivity" class="select-sens">
+                  <option value="0.8">0.8x Rất Chậm</option>
+                  <option value="1.0">1.0x Chậm</option>
+                  <option value="1.25" selected>1.25x Chuẩn (Khuyên Dùng)</option>
+                  <option value="1.5">1.5x Hơi Nhanh</option>
+                  <option value="1.8">1.8x Nhanh</option>
+                  <option value="2.2">2.2x Rất Nhanh</option>
+                </select>
+              </div>
+
+              <button class="btn-pointer-lock" id="btn-pointer-lock" title="Khóa chuột vào màn hình iPhone để thao tác thoải mái (Bấm ESC để dừng)">
+                <span>🎯 Khóa Chuột (ESC để thoát)</span>
+              </button>
+
+              <button class="btn-power-toggle btn-bt-toggle-compact" id="btn-toggle-bt-mouse">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="5" y="2" width="14" height="20" rx="7"></rect>
+                  <line x1="12" y1="6" x2="12" y2="10"></line>
+                </svg>
+                <span id="btn-toggle-bt-mouse-text">Bật Chuột Bluetooth</span>
+              </button>
+            </div>
           </div>
-          <div class="live-cast-body">
-            <img id="live-cast-img" src="" alt="Khung hình từ iPhone">
+
+          <!-- Main Interactive Stage: iPhone Frame + Side Dock -->
+          <div class="iphone-stage-wrapper">
+            <!-- iPhone Realistic Device Frame -->
+            <div class="iphone-device-frame" id="iphone-device-frame">
+              <!-- Dynamic Island -->
+              <div class="dynamic-island">
+                <div class="sensor-dot"></div>
+                <div class="camera-lens"></div>
+              </div>
+
+              <!-- Interactive Screen Surface -->
+              <div class="iphone-screen-surface" id="iphone-screen-surface">
+                <!-- Live Cast Stream Image (Active during Screen Mirror / Web Stream) -->
+                <img id="live-cast-img" class="live-screen-image" src="" alt="Màn hình iPhone" style="display: none;">
+
+                <!-- Default Interactive iOS UI Canvas (When AirPlay or waiting) -->
+                <div class="iphone-mockup-screen" id="iphone-mockup-screen">
+                  <div class="ios-status-bar">
+                    <span class="ios-time" id="ios-clock-time">09:41</span>
+                    <div class="ios-icons">
+                      <span class="ios-signal">5G</span>
+                      <svg class="ios-battery" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="18" height="10" rx="2" ry="2"></rect>
+                        <line x1="22" y1="11" x2="22" y2="13"></line>
+                        <rect x="4" y="9" width="12" height="6" fill="currentColor"></rect>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="ios-hero-banner">
+                    <div class="ios-guide-pill">
+                      <span class="pulse-active-dot"></span>
+                      <span>BỀ MẶT CẢM ỨNG TRỰC TIẾP</span>
+                    </div>
+                    <div class="ios-instruction-title">Rê Chuột Trên Màn Hình Này</div>
+                    <p class="ios-instruction-sub">Nhấp để Chạm • Giữ kéo để Vuốt • Lăn chuột để Cuộn trang</p>
+                  </div>
+
+                  <!-- Quick App Shortcuts Simulator -->
+                  <div class="ios-apps-grid">
+                    <div class="ios-app-item" id="app-item-photos">
+                      <div class="ios-app-icon icon-photos">🌸</div>
+                      <span>Ảnh</span>
+                    </div>
+                    <div class="ios-app-item" id="app-item-camera">
+                      <div class="ios-app-icon icon-camera">📷</div>
+                      <span>Camera</span>
+                    </div>
+                    <div class="ios-app-item" id="app-item-safari">
+                      <div class="ios-app-icon icon-safari">🧭</div>
+                      <span>Safari</span>
+                    </div>
+                    <div class="ios-app-item" id="app-item-settings">
+                      <div class="ios-app-icon icon-settings">⚙️</div>
+                      <span>Cài Đặt</span>
+                    </div>
+                  </div>
+
+                  <!-- iOS Bottom Dock -->
+                  <div class="ios-dock">
+                    <div class="ios-dock-icon">📞</div>
+                    <div class="ios-dock-icon">💬</div>
+                    <div class="ios-dock-icon">🎵</div>
+                    <div class="ios-dock-icon">⚙️</div>
+                  </div>
+                </div>
+
+                <!-- Direct Pointer Capture & Visual Feedback Layer -->
+                <div class="iphone-touch-overlay" id="iphone-touch-overlay">
+                  <div class="touch-cursor-ring" id="touch-cursor-ring">
+                    <div class="cursor-center-dot"></div>
+                  </div>
+                  <div class="touch-ripple-effect" id="touch-ripple-effect"></div>
+                </div>
+
+                <!-- iOS Home Bar (Bottom gesture indicator) -->
+                <div class="ios-home-bar-area" id="ios-home-bar-area" title="Nhấp hoặc gạt lên để Về Màn Hình Chính (Home)">
+                  <div class="ios-home-indicator-pill"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side Floating Action Panel -->
+            <div class="iphone-side-panel">
+              <div class="side-panel-header">
+                <span class="side-panel-title">Phím Tắt iOS Nhanh</span>
+                <span class="side-panel-subtitle">1 Chạm Để Điều Khiển</span>
+              </div>
+
+              <div class="quick-nav-actions">
+                <button class="btn-side-action highlight-home" id="btn-tp-home" title="Về Màn Hình Chính">
+                  <span class="action-icon">🏠</span>
+                  <div class="action-text">
+                    <span class="action-title">Màn Hình Chính</span>
+                    <span class="action-desc">Home Screen</span>
+                  </div>
+                </button>
+
+                <button class="btn-side-action" id="btn-tp-app-switcher" title="Mở danh sách đa nhiệm">
+                  <span class="action-icon">📱</span>
+                  <div class="action-text">
+                    <span class="action-title">Chuyển Ứng Dụng</span>
+                    <span class="action-desc">App Switcher</span>
+                  </div>
+                </button>
+
+                <button class="btn-side-action" id="btn-tp-click-right" title="Mở menu phím tắt AssistiveTouch">
+                  <span class="action-icon">⚡</span>
+                  <div class="action-text">
+                    <span class="action-title">Menu Trợ Năng</span>
+                    <span class="action-desc">AssistiveTouch</span>
+                  </div>
+                </button>
+
+                <div class="side-divider"><span>VUỐT NHANH</span></div>
+
+                <div class="swipe-buttons-grid">
+                  <button class="btn-swipe-tile" id="btn-tp-swipe-up" title="Vuốt màn hình lên">
+                    <span class="swipe-arrow">⬆️</span>
+                    <span>Vuốt Lên</span>
+                  </button>
+                  <button class="btn-swipe-tile" id="btn-tp-swipe-down" title="Vuốt màn hình xuống">
+                    <span class="swipe-arrow">⬇️</span>
+                    <span>Vuốt Xuống</span>
+                  </button>
+                  <button class="btn-swipe-tile" id="btn-tp-swipe-left" title="Vuốt màn hình sang trái">
+                    <span class="swipe-arrow">⬅️</span>
+                    <span>Vuốt Trái</span>
+                  </button>
+                  <button class="btn-swipe-tile" id="btn-tp-swipe-right" title="Vuốt màn hình sang phải">
+                    <span class="swipe-arrow">➡️</span>
+                    <span>Vuốt Phải</span>
+                  </button>
+                </div>
+
+                <div class="side-divider"><span>HƯỚNG DẪN BẬT</span></div>
+
+                <div class="compact-bt-guide">
+                  <div class="c-guide-step">
+                    <span class="c-step-badge">1</span>
+                    <span>iPhone &gt; <strong>Cài đặt &gt; Trợ năng &gt; Cảm ứng &gt; AssistiveTouch: BẬT</strong></span>
+                  </div>
+                  <div class="c-guide-step">
+                    <span class="c-step-badge">2</span>
+                    <span>iPhone &gt; <strong>Cài đặt &gt; Bluetooth</strong> &gt; Kết nối máy tính</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -335,6 +516,17 @@
               <div class="step-content">
                 <h4>Chọn "Phản Chiếu Màn Hình"</h4>
                 <p>Chạm vào biểu tượng <strong>hai hình chữ nhật lồng vào nhau</strong> và chọn tên máy tính <code id="guide-device-name-code">AirCast-PC</code>.</p>
+              </div>
+            </div>
+
+            <div class="guide-step-card bt-step-highlight">
+              <div class="step-badge bt-badge">🖱️</div>
+              <div class="step-content">
+                <h4>Cách 3: Điều Khiển Màn Hình Bằng Chuột Máy Tính (AssistiveTouch)</h4>
+                <p>1. Bấm <strong>"Bật Chuột Bluetooth"</strong> trên Bảng điều khiển.<br>
+                2. Trên iPhone mở <strong>Cài đặt &gt; Trợ năng &gt; Cảm ứng &gt; AssistiveTouch: BẬT</strong>.<br>
+                3. Mở <strong>Cài đặt &gt; Bluetooth</strong> trên iPhone và nhấn kết nối với máy tính.<br>
+                4. Rê chuột vào màn hình trên PC để chạm, click và vuốt lướt màn hình tức thì!</p>
               </div>
             </div>
           </div>
@@ -532,10 +724,10 @@
             <div class="setting-row">
               <div class="setting-meta">
                 <label>Phiên Bản Hiện Tại</label>
-                <span id="settings-current-ver-desc">Đang chạy AirCast Studio v1.0.0</span>
+                <span id="settings-current-ver-desc">Đang chạy AirCast Studio v1.1.0</span>
               </div>
               <div class="setting-control">
-                <span class="version-badge-tag" id="settings-current-version-tag">v1.0.0</span>
+                <span class="version-badge-tag" id="settings-current-version-tag">v1.1.0</span>
               </div>
             </div>
 
@@ -603,7 +795,7 @@
             <h3>Bản Cập Nhật Mới Đã Sẵn Sàng!</h3>
             <span class="modal-version-tag" id="modal-new-version-tag">v1.0.1</span>
           </div>
-          <p class="update-subtext">Phiên bản hiện tại: <span id="modal-current-version">v1.0.0</span></p>
+          <p class="update-subtext">Phiên bản hiện tại: <span id="modal-current-version">v1.1.0</span></p>
         </div>
       </div>
 

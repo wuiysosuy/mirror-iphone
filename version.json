@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "releaseName": "AirCast Studio v1.0.0 - Bản Chính Thức",
-  "releaseDate": "2026-09-25",
-  "releaseNotes": "• Bản phát hành chính thức AirCast Studio phản chiếu iPhone lên PC\n• Hỗ trợ truyền hình ảnh, camera, âm thanh không dây siêu mượt\n• Tích hợp tính năng tự động kiểm tra và cập nhật ứng dụng",
+  "version": "1.1.0",
+  "releaseName": "AirCast Studio v1.1.0 - Điều Khiển Cảm Ứng Chuột Bluetooth & Sửa Lỗi QR",
+  "releaseDate": "2026-09-27",
+  "releaseNotes": "• Tính năng điều khiển trực tiếp trên màn hình AirPlay Receiver qua Bluetooth HID Mouse\n• Thao tác chạm (Tap), cuộn/lướt video (Swipe/Drag) tự nhiên mượt mà trên iPhone\n• Sửa triệt để lỗi không hiển thị mã QR và nút bật chuột Bluetooth\n• Tối ưu tốc độ phản hồi 1.25x đầm tay, chuẩn xác và không bị trễ",
   "downloadUrl": "https://github.com/wuiysosuy/mirror-iphone/releases/latest",
   "githubUrl": "https://github.com/wuiysosuy/mirror-iphone/releases"
 }

@@ -42,6 +42,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const liveCastImg = document.getElementById('live-cast-img');
   const castStreamTitle = document.getElementById('cast-stream-title');
   const btnCloseCast = document.getElementById('btn-close-cast');
+  const checkCastMouseControl = document.getElementById('check-cast-mouse-control');
+  const selectMouseSensitivity = document.getElementById('select-mouse-sensitivity');
+  const mouseCaptureLayer = document.getElementById('mouse-capture-layer');
+  const virtualCursorDot = document.getElementById('virtual-cursor-dot');
+
+  // Bluetooth Mouse Elements
+  const headerBtMouseBadge = document.getElementById('header-bt-mouse-badge');
+  const headerBtMouseDot = document.getElementById('header-bt-mouse-dot');
+  const headerBtMouseText = document.getElementById('header-bt-mouse-text');
+  const btMouseStatusPill = document.getElementById('bt-mouse-status-pill');
+  const btnToggleBtMouse = document.getElementById('btn-toggle-bt-mouse');
+  const btnToggleBtMouseText = document.getElementById('btn-toggle-bt-mouse-text');
 
   // Firewall Elements
   const firewallStatusBox = document.getElementById('firewall-status-box');
@@ -110,6 +122,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   let cachedUpdateInfo = null;
   let downloadedInstallerPath = null;
   let isDownloading = false;
+
+  // Bluetooth Mouse State
+  let btMouseState = 'stopped';
+  let btConnectedClients = 0;
+  let mouseSensitivity = parseFloat(localStorage.getItem('aircast_mouse_sens') || '1.2');
+  let isMouseControlActive = true;
+  if (selectMouseSensitivity) selectMouseSensitivity.value = mouseSensitivity.toString();
 
   inputDeviceName.value = deviceName;
   checkDebugMode.checked = debugMode;
@@ -305,99 +324,117 @@ document.addEventListener('DOMContentLoaded', async () => {
     appendLog({ message: 'Vui lòng hoàn tất các bước "Next -> Finish" trên cửa sổ cài đặt Bonjour.', type: 'warn' });
   }
 
-  btnInstallBonjourQuick.addEventListener('click', handleInstallBonjour);
-  btnInstallBonjourDiag.addEventListener('click', handleInstallBonjour);
+  if (btnInstallBonjourQuick) btnInstallBonjourQuick.addEventListener('click', handleInstallBonjour);
+  if (btnInstallBonjourDiag) btnInstallBonjourDiag.addEventListener('click', handleInstallBonjour);
 
   // Toggle Server
-  btnToggleServer.addEventListener('click', async () => {
-    if (!window.aircast) return;
+  if (btnToggleServer) {
+    btnToggleServer.addEventListener('click', async () => {
+      if (!window.aircast) return;
 
-    if (currentServerState === 'running' || currentServerState === 'starting') {
-      updateStatusUI('starting');
-      await window.aircast.stopServer();
-    } else {
-      updateStatusUI('starting');
-      const res = await window.aircast.startServer({ debug: debugMode });
-      if (!res.success) {
-        updateStatusUI('stopped');
-        alert(`Không thể khởi chạy: ${res.error}`);
+      if (currentServerState === 'running' || currentServerState === 'starting') {
+        updateStatusUI('starting');
+        await window.aircast.stopServer();
+      } else {
+        updateStatusUI('starting');
+        const res = await window.aircast.startServer({ debug: debugMode });
+        if (!res.success) {
+          updateStatusUI('stopped');
+          alert(`Không thể khởi chạy: ${res.error}`);
+        }
       }
-    }
-  });
+    });
+  }
 
   // Copy QR Link
-  boxQrLink.addEventListener('click', () => {
-    const url = txtQrUrl.textContent;
-    if (url) {
-      navigator.clipboard.writeText(url);
-      const original = txtQrUrl.textContent;
-      txtQrUrl.textContent = '✓ Đã sao chép liên kết!';
-      setTimeout(() => {
-        txtQrUrl.textContent = original;
-      }, 1500);
-    }
-  });
+  if (boxQrLink) {
+    boxQrLink.addEventListener('click', () => {
+      const url = txtQrUrl ? txtQrUrl.textContent : '';
+      if (url) {
+        navigator.clipboard.writeText(url);
+        const original = txtQrUrl.textContent;
+        txtQrUrl.textContent = '✓ Đã sao chép liên kết!';
+        setTimeout(() => {
+          txtQrUrl.textContent = original;
+        }, 1500);
+      }
+    });
+  }
 
   // Copy IP on chip
-  chipIpAddress.addEventListener('click', () => {
-    const ip = valIpAddress.textContent;
-    if (ip && ip !== '127.0.0.1') {
-      navigator.clipboard.writeText(ip);
-      const originalText = headerIpText.textContent;
-      headerIpText.textContent = '✓ Đã sao chép IP!';
-      setTimeout(() => {
-        headerIpText.textContent = originalText;
-      }, 1500);
-    }
-  });
+  if (chipIpAddress) {
+    chipIpAddress.addEventListener('click', () => {
+      const ip = valIpAddress ? valIpAddress.textContent : '';
+      if (ip && ip !== '127.0.0.1') {
+        navigator.clipboard.writeText(ip);
+        const originalText = headerIpText.textContent;
+        headerIpText.textContent = '✓ Đã sao chép IP!';
+        setTimeout(() => {
+          headerIpText.textContent = originalText;
+        }, 1500);
+      }
+    });
+  }
 
   // Clear Logs
-  btnClearLogs.addEventListener('click', () => {
-    logsContainer.innerHTML = '<div class="log-line info">[Hệ Thống] Đã làm sạch nhật ký.</div>';
-  });
+  if (btnClearLogs) {
+    btnClearLogs.addEventListener('click', () => {
+      if (logsContainer) logsContainer.innerHTML = '<div class="log-line info">[Hệ Thống] Đã làm sạch nhật ký.</div>';
+    });
+  }
 
   // Close Live Cast
-  btnCloseCast.addEventListener('click', () => {
-    liveCastContainer.style.display = 'none';
-  });
+  if (btnCloseCast && liveCastContainer) {
+    btnCloseCast.addEventListener('click', () => {
+      liveCastContainer.style.display = 'none';
+    });
+  }
 
   // Fix Firewall
-  btnFixFirewall.addEventListener('click', async () => {
-    if (!window.aircast) return;
-    appendLog({ message: 'Đang yêu cầu cấp quyền Tường Lửa qua Windows...', type: 'info' });
-    const res = await window.aircast.runFirewallHelper();
-    if (res.success) {
-      appendLog({ message: 'Đã mở script cấu hình Tường Lửa. Nhấn "Yes" nếu có thông báo UAC.', type: 'success' });
-      setTimeout(checkFirewallStatus, 4000);
-    } else {
-      appendLog({ message: `Lỗi: ${res.error}`, type: 'error' });
-    }
-  });
+  if (btnFixFirewall) {
+    btnFixFirewall.addEventListener('click', async () => {
+      if (!window.aircast) return;
+      appendLog({ message: 'Đang yêu cầu cấp quyền Tường Lửa qua Windows...', type: 'info' });
+      const res = await window.aircast.runFirewallHelper();
+      if (res.success) {
+        appendLog({ message: 'Đã mở script cấu hình Tường Lửa. Nhấn "Yes" nếu có thông báo UAC.', type: 'success' });
+        setTimeout(checkFirewallStatus, 4000);
+      } else {
+        appendLog({ message: `Lỗi: ${res.error}`, type: 'error' });
+      }
+    });
+  }
 
   // Refresh Button
-  btnRefreshInfo.addEventListener('click', () => {
-    refreshNetwork();
-    appendLog({ message: 'Đã làm mới thông tin mạng, Bonjour & mã QR.', type: 'info' });
-  });
+  if (btnRefreshInfo) {
+    btnRefreshInfo.addEventListener('click', () => {
+      refreshNetwork();
+      appendLog({ message: 'Đã làm mới thông tin mạng, Bonjour & mã QR.', type: 'info' });
+    });
+  }
 
   // Save Settings
-  btnSaveSettings.addEventListener('click', () => {
-    const newName = inputDeviceName.value.trim() || 'AirCast-PC';
-    debugMode = checkDebugMode.checked;
+  if (btnSaveSettings) {
+    btnSaveSettings.addEventListener('click', () => {
+      const newName = inputDeviceName ? (inputDeviceName.value.trim() || 'AirCast-PC') : 'AirCast-PC';
+      debugMode = checkDebugMode ? checkDebugMode.checked : false;
 
-    localStorage.setItem('aircast_device_name', newName);
-    localStorage.setItem('aircast_debug_mode', debugMode.toString());
+      localStorage.setItem('aircast_device_name', newName);
+      localStorage.setItem('aircast_debug_mode', debugMode.toString());
 
-    updateDeviceNameUI(newName);
-    alert('Đã lưu cài đặt thành công!');
-  });
+      updateDeviceNameUI(newName);
+      alert('Đã lưu cài đặt thành công!');
+    });
+  }
 
   // Restart Server Button
-  btnRestartServer.addEventListener('click', async () => {
-    if (!window.aircast) return;
-    appendLog({ message: 'Đang khởi động lại dịch vụ AirPlay...', type: 'info' });
-    await window.aircast.restartServer({ debug: debugMode });
-  });
+  if (btnRestartServer) {
+    btnRestartServer.addEventListener('click', async () => {
+      if (!window.aircast) return;
+      appendLog({ message: 'Đang khởi động lại dịch vụ AirPlay...', type: 'info' });
+      await window.aircast.restartServer({ debug: debugMode });
+    });
+  }
 
   // Listeners from Backend
   if (window.aircast) {
@@ -420,16 +457,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    const liveCastImg = document.getElementById('live-cast-img');
+    const iphoneMockupScreen = document.getElementById('iphone-mockup-screen');
+
     window.aircast.onCameraFrame((frame) => {
-      liveCastContainer.style.display = 'block';
-      castStreamTitle.textContent = 'Camera iPhone Trực Tiếp (Live Stream)';
-      liveCastImg.src = frame;
+      if (liveCastImg) {
+        liveCastImg.style.display = 'block';
+        liveCastImg.src = frame;
+      }
+      if (iphoneMockupScreen) {
+        iphoneMockupScreen.style.display = 'none';
+      }
     });
 
     window.aircast.onPhotoReceived((photoData) => {
-      liveCastContainer.style.display = 'block';
-      castStreamTitle.textContent = 'Trình Chiếu Ảnh Từ iPhone';
-      liveCastImg.src = photoData;
+      if (liveCastImg) {
+        liveCastImg.style.display = 'block';
+        liveCastImg.src = photoData;
+      }
+      if (iphoneMockupScreen) {
+        iphoneMockupScreen.style.display = 'none';
+      }
       appendLog({ message: 'Đã nhận và hiển thị 1 ảnh từ iPhone.', type: 'success' });
     });
 
@@ -437,6 +485,387 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStatusUI(initialStatus.status);
     if (initialStatus.logs && initialStatus.logs.length > 0) {
       initialStatus.logs.forEach(appendLog);
+    }
+  }
+
+  // ==========================================================================
+  // BLUETOOTH MOUSE CONTROL LOGIC
+  // ==========================================================================
+  function updateBtMouseUI(status, clientCount = 0) {
+    btMouseState = status;
+    btConnectedClients = clientCount;
+
+    if (status === 'connected') {
+      if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.add('active');
+        btnToggleBtMouseText.textContent = 'Tắt Chuột Bluetooth';
+      }
+      if (btMouseStatusPill) {
+        btMouseStatusPill.className = 'status-pill status-running';
+        btMouseStatusPill.textContent = 'Đã Kết Nối iPhone ⚡ Sẵn Sàng Điều Khiển';
+      }
+      if (headerBtMouseBadge) {
+        headerBtMouseBadge.className = 'bt-mouse-header-badge connected';
+        headerBtMouseText.textContent = 'Chuột: Đã Kết Nối';
+      }
+    } else if (status === 'advertising') {
+      if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.add('active');
+        btnToggleBtMouseText.textContent = 'Dừng Phát Sóng';
+      }
+      if (btMouseStatusPill) {
+        btMouseStatusPill.className = 'status-pill status-starting';
+        btMouseStatusPill.textContent = 'Đang Phát Sóng (Chờ iPhone Ghép Đôi)';
+      }
+      if (headerBtMouseBadge) {
+        headerBtMouseBadge.className = 'bt-mouse-header-badge advertising';
+        headerBtMouseText.textContent = 'Chuột: Chờ Kết Nối';
+      }
+    } else if (status === 'starting') {
+      if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('active');
+        btnToggleBtMouseText.textContent = 'Đang Khởi Động...';
+      }
+      if (btMouseStatusPill) {
+        btMouseStatusPill.className = 'status-pill status-starting';
+        btMouseStatusPill.textContent = 'Đang Bật Bluetooth...';
+      }
+      if (headerBtMouseBadge) {
+        headerBtMouseBadge.className = 'bt-mouse-header-badge';
+        headerBtMouseText.textContent = 'Chuột: Đang Bật...';
+      }
+    } else {
+      if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('active');
+        btnToggleBtMouseText.textContent = 'Bật Chuột Bluetooth';
+      }
+      if (btMouseStatusPill) {
+        btMouseStatusPill.className = 'status-pill status-stopped';
+        btMouseStatusPill.textContent = 'Chuột Bluetooth: Đang Tắt';
+      }
+      if (headerBtMouseBadge) {
+        headerBtMouseBadge.className = 'bt-mouse-header-badge';
+        headerBtMouseText.textContent = 'Chuột: Tắt';
+      }
+    }
+  }
+
+  // Toggle Bluetooth Mouse
+  if (btnToggleBtMouse) {
+    btnToggleBtMouse.addEventListener('click', async () => {
+      if (!window.aircast || !window.aircast.bluetooth) return;
+
+      if (btMouseState === 'advertising' || btMouseState === 'connected' || btMouseState === 'starting') {
+        updateBtMouseUI('starting');
+        await window.aircast.bluetooth.stop();
+      } else {
+        updateBtMouseUI('starting');
+        const res = await window.aircast.bluetooth.start(deviceName || 'AirCast Mouse');
+        if (!res.success) {
+          updateBtMouseUI('stopped');
+          alert(`Không thể bật chuột Bluetooth: ${res.error}`);
+        }
+      }
+    });
+  }
+
+  // Mouse Sensitivity setting
+  if (selectMouseSensitivity) {
+    selectMouseSensitivity.addEventListener('change', () => {
+      mouseSensitivity = parseFloat(selectMouseSensitivity.value) || 1.2;
+      localStorage.setItem('aircast_mouse_sens', mouseSensitivity.toString());
+    });
+  }
+
+  // ==========================================================================
+  // DIRECT ON-SCREEN IPHONE MIRROR & TOUCH CONTROL
+  // ==========================================================================
+  const iphoneTouchOverlay = document.getElementById('iphone-touch-overlay');
+  const touchCursorRing = document.getElementById('touch-cursor-ring');
+  const touchRippleEffect = document.getElementById('touch-ripple-effect');
+  const iosHomeBarArea = document.getElementById('ios-home-bar-area');
+  const iphoneMockupScreen = document.getElementById('iphone-mockup-screen');
+  const iosClockTime = document.getElementById('ios-clock-time');
+
+  const btnPointerLock = document.getElementById('btn-pointer-lock');
+  const selectTouchpadSensitivity = document.getElementById('select-touchpad-sensitivity');
+
+  const btnTpHome = document.getElementById('btn-tp-home');
+  const btnTpAppSwitcher = document.getElementById('btn-tp-app-switcher');
+  const btnTpClickRight = document.getElementById('btn-tp-click-right');
+  const btnTpSwipeUp = document.getElementById('btn-tp-swipe-up');
+  const btnTpSwipeDown = document.getElementById('btn-tp-swipe-down');
+  const btnTpSwipeLeft = document.getElementById('btn-tp-swipe-left');
+  const btnTpSwipeRight = document.getElementById('btn-tp-swipe-right');
+
+  let isPointerLocked = false;
+  mouseSensitivity = parseFloat(localStorage.getItem('aircast_mouse_sens') || '1.25');
+  if (selectTouchpadSensitivity) selectTouchpadSensitivity.value = mouseSensitivity.toString();
+
+  // Sensitivity selector
+  if (selectTouchpadSensitivity) {
+    selectTouchpadSensitivity.addEventListener('change', () => {
+      mouseSensitivity = parseFloat(selectTouchpadSensitivity.value) || 1.25;
+      localStorage.setItem('aircast_mouse_sens', mouseSensitivity.toString());
+      if (window.aircast && window.aircast.bluetooth && window.aircast.bluetooth.setSensitivity) {
+        window.aircast.bluetooth.setSensitivity(mouseSensitivity);
+      }
+    });
+  }
+
+  // Update clock on iOS screen
+  function updateIosClock() {
+    if (!iosClockTime) return;
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    iosClockTime.textContent = `${hours}:${minutes}`;
+  }
+  updateIosClock();
+  setInterval(updateIosClock, 30000);
+
+  // Trigger visual ripple on tap
+  function triggerRipple(x, y) {
+    if (!touchRippleEffect) return;
+    touchRippleEffect.style.left = `${x}px`;
+    touchRippleEffect.style.top = `${y}px`;
+    touchRippleEffect.classList.remove('animate-ripple');
+    void touchRippleEffect.offsetWidth; // Force reflow
+    touchRippleEffect.classList.add('animate-ripple');
+  }
+
+  // Direct On-Screen Mouse Interaction on iPhone Frame
+  if (iphoneTouchOverlay) {
+    iphoneTouchOverlay.addEventListener('mousemove', (e) => {
+      // Update Apple-style AssistiveTouch pointer on the screen
+      if (touchCursorRing) {
+        touchCursorRing.style.left = `${e.offsetX}px`;
+        touchCursorRing.style.top = `${e.offsetY}px`;
+        touchCursorRing.style.display = 'block';
+      }
+
+      // Send relative motion to iPhone via Bluetooth HID
+      if (window.aircast && window.aircast.bluetooth) {
+        const dx = e.movementX * mouseSensitivity;
+        const dy = e.movementY * mouseSensitivity;
+        if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+          window.aircast.bluetooth.mouseMove(dx, dy);
+        }
+      }
+    });
+
+    iphoneTouchOverlay.addEventListener('mouseenter', () => {
+      if (touchCursorRing) touchCursorRing.style.display = 'block';
+    });
+
+    iphoneTouchOverlay.addEventListener('mouseleave', () => {
+      if (touchCursorRing) touchCursorRing.style.display = 'none';
+    });
+
+    iphoneTouchOverlay.addEventListener('mousedown', (e) => {
+      if (touchCursorRing) touchCursorRing.classList.add('active-click');
+      triggerRipple(e.offsetX, e.offsetY);
+
+      let btn = 'left';
+      if (e.button === 2) btn = 'right';
+      else if (e.button === 1) btn = 'middle';
+
+      if (window.aircast && window.aircast.bluetooth) {
+        window.aircast.bluetooth.mouseDown(btn);
+      }
+    });
+
+    iphoneTouchOverlay.addEventListener('mouseup', (e) => {
+      if (touchCursorRing) touchCursorRing.classList.remove('active-click');
+
+      let btn = 'left';
+      if (e.button === 2) btn = 'right';
+      else if (e.button === 1) btn = 'middle';
+
+      if (window.aircast && window.aircast.bluetooth) {
+        window.aircast.bluetooth.mouseUp(btn);
+      }
+    });
+
+    iphoneTouchOverlay.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = Math.sign(e.deltaY) * -1;
+      if (window.aircast && window.aircast.bluetooth) {
+        window.aircast.bluetooth.mouseWheel(delta);
+      }
+    }, { passive: false });
+
+    iphoneTouchOverlay.addEventListener('contextmenu', (e) => {
+      // Prevent browser right click menu so right-click is sent to iPhone (e.g. open menu/home)
+      e.preventDefault();
+    });
+  }
+
+  // iOS Home Bar Indicator (Click or swipe to go Home)
+  if (iosHomeBarArea) {
+    iosHomeBarArea.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.home) {
+          window.aircast.bluetooth.home();
+        } else {
+          window.aircast.bluetooth.mouseDown('right');
+          setTimeout(() => window.aircast.bluetooth.mouseUp('right'), 60);
+        }
+      }
+    });
+  }
+
+  // Pointer Lock Mode (Capture entire mouse cursor without borders)
+  if (btnPointerLock) {
+    btnPointerLock.addEventListener('click', () => {
+      if (!isPointerLocked) {
+        document.body.requestPointerLock();
+      } else {
+        document.exitPointerLock();
+      }
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      isPointerLocked = document.pointerLockElement === document.body;
+      if (isPointerLocked) {
+        btnPointerLock.classList.add('locked');
+        btnPointerLock.innerHTML = '<span>🔴 Đang Khóa Chuột (Bấm ESC để dừng)</span>';
+      } else {
+        btnPointerLock.classList.remove('locked');
+        btnPointerLock.innerHTML = '<span>🎯 Khóa Chuột (ESC để thoát)</span>';
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isPointerLocked && window.aircast && window.aircast.bluetooth) {
+        const dx = e.movementX * mouseSensitivity;
+        const dy = e.movementY * mouseSensitivity;
+        if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+          window.aircast.bluetooth.mouseMove(dx, dy);
+        }
+      }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (isPointerLocked && window.aircast && window.aircast.bluetooth) {
+        let btn = 'left';
+        if (e.button === 2) btn = 'right';
+        else if (e.button === 1) btn = 'middle';
+        window.aircast.bluetooth.mouseDown(btn);
+      }
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      if (isPointerLocked && window.aircast && window.aircast.bluetooth) {
+        let btn = 'left';
+        if (e.button === 2) btn = 'right';
+        else if (e.button === 1) btn = 'middle';
+        window.aircast.bluetooth.mouseUp(btn);
+      }
+    });
+  }
+
+  // Side Navigation & Shortcut Buttons
+  if (btnTpHome) {
+    btnTpHome.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.home) {
+          window.aircast.bluetooth.home();
+        } else {
+          window.aircast.bluetooth.mouseDown('right');
+          setTimeout(() => window.aircast.bluetooth.mouseUp('right'), 60);
+        }
+      }
+    });
+  }
+
+  if (btnTpAppSwitcher) {
+    btnTpAppSwitcher.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.swipe) {
+          window.aircast.bluetooth.swipe('up');
+        } else {
+          window.aircast.bluetooth.mouseWheel(-5);
+        }
+      }
+    });
+  }
+
+  if (btnTpClickRight) {
+    btnTpClickRight.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        window.aircast.bluetooth.mouseDown('right');
+        setTimeout(() => window.aircast.bluetooth.mouseUp('right'), 50);
+      }
+    });
+  }
+
+  if (btnTpSwipeUp) {
+    btnTpSwipeUp.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.swipe) {
+          window.aircast.bluetooth.swipe('up');
+        } else {
+          window.aircast.bluetooth.mouseWheel(-5);
+        }
+      }
+    });
+  }
+
+  if (btnTpSwipeDown) {
+    btnTpSwipeDown.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.swipe) {
+          window.aircast.bluetooth.swipe('down');
+        } else {
+          window.aircast.bluetooth.mouseWheel(5);
+        }
+      }
+    });
+  }
+
+  if (btnTpSwipeLeft) {
+    btnTpSwipeLeft.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.swipe) {
+          window.aircast.bluetooth.swipe('left');
+        }
+      }
+    });
+  }
+
+  if (btnTpSwipeRight) {
+    btnTpSwipeRight.addEventListener('click', () => {
+      if (window.aircast && window.aircast.bluetooth) {
+        if (window.aircast.bluetooth.swipe) {
+          window.aircast.bluetooth.swipe('right');
+        }
+      }
+    });
+  }
+
+  // Bluetooth Backend Listeners
+  if (window.aircast && window.aircast.bluetooth) {
+    window.aircast.bluetooth.onStatusChange((status) => {
+      updateBtMouseUI(status, btConnectedClients);
+    });
+
+    window.aircast.bluetooth.onClientsChange((count) => {
+      updateBtMouseUI(count > 0 ? 'connected' : 'advertising', count);
+    });
+
+    window.aircast.bluetooth.onLog((log) => {
+      appendLog(log);
+    });
+
+    // Check initial status
+    try {
+      const initialBt = await window.aircast.bluetooth.getStatus();
+      if (initialBt) {
+        updateBtMouseUI(initialBt.status, initialBt.connectedClients || 0);
+      }
+    } catch (e) {
+      console.error('Lỗi lấy trạng thái ban đầu chuột Bluetooth:', e);
     }
   }
 

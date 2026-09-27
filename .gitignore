@@ -20,3 +20,8 @@ desktop.ini
 # IDE & editors
 .vscode/
 .idea/
+
+# .NET build outputs
+src/native/**/bin/
+src/native/**/obj/
+*.pdb

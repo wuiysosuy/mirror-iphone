@@ -4,15 +4,23 @@ const { exec } = require('child_process');
 const ServerManager = require('./server-manager');
 const MobileWebServer = require('./web-server');
 const AppUpdater = require('./updater');
+const BluetoothMouseManager = require('./bluetooth-mouse-manager');
 const { getNetworkInfo, checkFirewallStatus, checkBonjourStatus } = require('./network-utils');
 
 function getBaseDir() {
   return app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '../../');
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
 let mainWindow = null;
 let serverManager = null;
 let appUpdater = null;
+let bluetoothMouseManager = null;
 const mobileWebServer = new MobileWebServer(5050);
 let qrInfo = null;
 
@@ -79,6 +87,26 @@ function createWindow() {
   mobileWebServer.onPhotoReceived = (photoData) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('phone:photo-received', photoData);
+    }
+  };
+
+  bluetoothMouseManager = new BluetoothMouseManager(getBaseDir());
+
+  bluetoothMouseManager.onStatusChange = (status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('bluetooth:status-changed', status);
+    }
+  };
+
+  bluetoothMouseManager.onClientsChange = (count) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('bluetooth:clients-changed', count);
+    }
+  };
+
+  bluetoothMouseManager.onLog = (logEntry) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('bluetooth:log', logEntry);
     }
   };
 
@@ -197,7 +225,66 @@ ipcMain.handle('updater:install', async (event, filePath) => {
   return { success: false, error: 'Chưa khởi tạo AppUpdater' };
 });
 
+// Bluetooth Mouse Handlers
+ipcMain.handle('bluetooth:get-status', async () => {
+  if (bluetoothMouseManager) return bluetoothMouseManager.getStatus();
+  return { status: 'stopped', connectedClients: 0 };
+});
+
+ipcMain.handle('bluetooth:start', async (event, name) => {
+  if (!bluetoothMouseManager) bluetoothMouseManager = new BluetoothMouseManager(getBaseDir());
+  return bluetoothMouseManager.start(name);
+});
+
+ipcMain.handle('bluetooth:stop', async () => {
+  if (bluetoothMouseManager) return bluetoothMouseManager.stop();
+  return { success: true };
+});
+
+ipcMain.handle('bluetooth:mouse-move', (event, dx, dy) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendMouseMove(dx, dy);
+});
+
+ipcMain.handle('bluetooth:mouse-down', (event, button) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendMouseDown(button);
+});
+
+ipcMain.handle('bluetooth:mouse-up', (event, button) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendMouseUp(button);
+});
+
+ipcMain.handle('bluetooth:mouse-wheel', (event, delta) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendMouseWheel(delta);
+});
+
+ipcMain.handle('bluetooth:tap', () => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendTap();
+});
+
+ipcMain.handle('bluetooth:home', () => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendHome();
+});
+
+ipcMain.handle('bluetooth:swipe', (event, direction) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.sendSwipe(direction);
+});
+
+ipcMain.handle('bluetooth:set-sensitivity', (event, val) => {
+  if (bluetoothMouseManager) bluetoothMouseManager.setSensitivity(val);
+});
+
+ipcMain.handle('bluetooth:sync-cursor', () => {
+  if (bluetoothMouseManager) bluetoothMouseManager.syncCursor();
+});
+
 // App Lifecycle
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
   const netInfo = getNetworkInfo();
   try {
@@ -217,6 +304,7 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (serverManager) serverManager.stop();
+  if (bluetoothMouseManager) bluetoothMouseManager.terminate();
   mobileWebServer.stop();
   if (process.platform !== 'darwin') {
     app.quit();
@@ -225,5 +313,6 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   if (serverManager) serverManager.stop();
+  if (bluetoothMouseManager) bluetoothMouseManager.terminate();
   mobileWebServer.stop();
 });
