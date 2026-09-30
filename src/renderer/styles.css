@@ -437,6 +437,12 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.status-locked {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
 .hero-title {
   font-size: 20px;
   font-weight: 800;
@@ -1855,6 +1861,17 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   animation: pulse-dot 1.2s infinite;
 }
 
+.bt-mouse-header-badge.locked {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.bt-mouse-header-badge.locked .badge-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
 /* Bluetooth Mouse Card */
 .bt-mouse-card {
   margin-top: 20px;
@@ -2216,6 +2233,296 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
 
 .btn-bt-toggle-compact span {
   font-size: 12px !important;
+}
+
+.btn-power-toggle.locked {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  filter: grayscale(0.5);
+  position: relative;
+}
+
+.btn-power-toggle.locked:hover {
+  transform: none !important;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* ==========================================================================
+   BLUETOOTH HARDWARE COMPATIBILITY BANNER & CHECKLIST
+   ========================================================================== */
+.bt-compat-banner {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: bannerFadeIn 0.3s ease-out;
+}
+
+@keyframes bannerFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bt-compat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bt-compat-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.bt-compat-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.bt-compat-status-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #f87171;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+.bt-compat-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fecaca;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.bt-compat-subtitle {
+  font-size: 13px;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.btn-recheck-bt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-recheck-bt:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-recheck-bt svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.3s ease;
+}
+
+.btn-recheck-bt.scanning svg {
+  animation: spinRecheck 0.8s linear infinite;
+}
+
+@keyframes spinRecheck {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bt-compat-body {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.compat-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+
+.compat-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.compat-check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.compat-check-item.passed {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.compat-check-item.passed .check-icon {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.compat-check-item.failed {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.compat-check-item.failed .check-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.compat-check-item .check-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.compat-check-item .check-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.compat-check-item .check-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 3px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.compat-check-item .check-note {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.compat-guidance-box {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.guidance-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 12px;
+}
+
+.guidance-header svg {
+  width: 18px;
+  height: 18px;
+  stroke: #fbbf24;
+  flex-shrink: 0;
+}
+
+.compat-recommendations-list {
+  margin: 0 0 16px 0;
+  padding-left: 20px;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.compat-recommendations-list li {
+  margin-bottom: 6px;
+}
+
+.compat-dongle-recommend {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.dongle-rec-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  letter-spacing: 0.6px;
+}
+
+.dongle-rec-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.dongle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dongle-chip {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f8fafc;
 }
 
 /* Stage Layout: Phone Frame + Side Panel */
@@ -2726,4 +3033,73 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   flex-shrink: 0;
   margin-top: 1px;
 }
+
+/* Device Names Styling */
+.spec-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spec-val.highlight {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.btn-tag-edit {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-tag-edit:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.bt-name-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.setting-label-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.setting-icon {
+  width: 18px;
+  height: 18px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.settings-card-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
 

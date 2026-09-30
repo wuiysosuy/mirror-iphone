@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btMouseStatusPill = document.getElementById('bt-mouse-status-pill');
   const btnToggleBtMouse = document.getElementById('btn-toggle-bt-mouse');
   const btnToggleBtMouseText = document.getElementById('btn-toggle-bt-mouse-text');
+  const btCompatBanner = document.getElementById('bt-compat-banner');
+  const btCompatSummaryText = document.getElementById('bt-compat-summary-text');
+  const btCompatChecklist = document.getElementById('bt-compat-checklist');
+  const btCompatRecommendations = document.getElementById('bt-compat-recommendations');
+  const btnRecheckBt = document.getElementById('btn-recheck-bt');
+
+  let btIsCompatible = true;
+  let btCompatibilityInfo = null;
 
   // Firewall Elements
   const firewallStatusBox = document.getElementById('firewall-status-box');
@@ -67,6 +75,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Settings Elements
   const inputDeviceName = document.getElementById('input-device-name');
+  const inputMouseName = document.getElementById('input-mouse-name');
+  const valMouseName = document.getElementById('val-mouse-name');
+  const guideMouseNameCode = document.getElementById('guide-mouse-name-code');
+  const btnQuickEditPc = document.getElementById('btn-quick-edit-pc');
+  const btnQuickEditMouse = document.getElementById('btn-quick-edit-mouse');
   const selectQuality = document.getElementById('select-quality');
   const checkDebugMode = document.getElementById('check-debug-mode');
   const btnSaveSettings = document.getElementById('btn-save-settings');
@@ -117,6 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Local State
   let currentServerState = 'stopped';
   let deviceName = localStorage.getItem('aircast_device_name') || 'AirCast-PC';
+  let mouseName = localStorage.getItem('aircast_mouse_name') || 'AirCast Mouse';
   let debugMode = localStorage.getItem('aircast_debug_mode') === 'true';
   let autoCheckUpdate = localStorage.getItem('aircast_auto_update') !== 'false';
   let cachedUpdateInfo = null;
@@ -130,9 +144,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isMouseControlActive = true;
   if (selectMouseSensitivity) selectMouseSensitivity.value = mouseSensitivity.toString();
 
-  inputDeviceName.value = deviceName;
+  if (inputDeviceName) inputDeviceName.value = deviceName;
+  if (inputMouseName) inputMouseName.value = mouseName;
   checkDebugMode.checked = debugMode;
   updateDeviceNameUI(deviceName);
+  updateMouseNameUI(mouseName);
 
   const tabMeta = {
     'tab-dashboard': {
@@ -173,9 +189,55 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   function updateDeviceNameUI(name) {
-    valDeviceName.textContent = name;
-    guideDeviceNameCode.textContent = name;
-    mockupDeviceName.textContent = name;
+    if (valDeviceName) valDeviceName.textContent = name;
+    if (guideDeviceNameCode) guideDeviceNameCode.textContent = name;
+    if (mockupDeviceName) mockupDeviceName.textContent = name;
+    if (inputDeviceName) inputDeviceName.value = name;
+  }
+
+  function updateMouseNameUI(name) {
+    if (valMouseName) valMouseName.textContent = name;
+    if (guideMouseNameCode) guideMouseNameCode.textContent = name;
+    if (inputMouseName) inputMouseName.value = name;
+  }
+
+  // Load persistent device names from backend config
+  async function loadDeviceNamesFromBackend() {
+    if (window.aircast && window.aircast.getDeviceNames) {
+      try {
+        const res = await window.aircast.getDeviceNames();
+        if (res && res.airplayName) {
+          deviceName = res.airplayName;
+          localStorage.setItem('aircast_device_name', deviceName);
+          updateDeviceNameUI(deviceName);
+        }
+      } catch (e) {
+        console.warn('Lỗi đọc tên thiết bị từ backend:', e);
+      }
+    }
+    updateMouseNameUI(mouseName);
+  }
+  loadDeviceNamesFromBackend();
+
+  // Quick Edit Buttons on Dashboard
+  function switchToSettingsAndFocus(inputId) {
+    const settingsBtn = document.querySelector('.nav-item[data-tab="tab-settings"]');
+    if (settingsBtn) settingsBtn.click();
+    const input = document.getElementById(inputId);
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 150);
+    }
+  }
+
+  if (btnQuickEditPc) {
+    btnQuickEditPc.addEventListener('click', () => switchToSettingsAndFocus('input-device-name'));
+  }
+
+  if (btnQuickEditMouse) {
+    btnQuickEditMouse.addEventListener('click', () => switchToSettingsAndFocus('input-mouse-name'));
   }
 
   function updateStatusUI(status) {
@@ -415,15 +477,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Save Settings
   if (btnSaveSettings) {
-    btnSaveSettings.addEventListener('click', () => {
+    btnSaveSettings.addEventListener('click', async () => {
       const newName = inputDeviceName ? (inputDeviceName.value.trim() || 'AirCast-PC') : 'AirCast-PC';
+      const newMouse = inputMouseName ? (inputMouseName.value.trim() || 'AirCast Mouse') : 'AirCast Mouse';
       debugMode = checkDebugMode ? checkDebugMode.checked : false;
 
-      localStorage.setItem('aircast_device_name', newName);
+      const oldDeviceName = deviceName;
+      const oldMouseName = mouseName;
+
+      deviceName = newName;
+      mouseName = newMouse;
+
+      localStorage.setItem('aircast_device_name', deviceName);
+      localStorage.setItem('aircast_mouse_name', mouseName);
       localStorage.setItem('aircast_debug_mode', debugMode.toString());
 
-      updateDeviceNameUI(newName);
-      alert('Đã lưu cài đặt thành công!');
+      updateDeviceNameUI(deviceName);
+      updateMouseNameUI(mouseName);
+
+      // Lưu trực tiếp vào file cấu hình airplay_settings.ini ở backend
+      if (window.aircast && window.aircast.saveDeviceNames) {
+        await window.aircast.saveDeviceNames({ airplayName: deviceName, mouseName: mouseName });
+      }
+
+      appendLog({
+        message: `✓ Đã lưu cài đặt tên thiết bị: Máy tính = "${deviceName}", Chuột = "${mouseName}"`,
+        type: 'success'
+      });
+
+      // Nếu máy chủ AirPlay đang chạy mà đổi tên, tự khởi động lại để phát tên mới
+      if (currentServerState === 'running' && oldDeviceName !== deviceName) {
+        appendLog({ message: 'Tên máy tính đã đổi. Đang tự khởi động lại dịch vụ AirPlay để cập nhật...', type: 'info' });
+        await window.aircast.restartServer({ debug: debugMode });
+      }
+
+      // Nếu chuột Bluetooth đang bật mà đổi tên, tự khởi động lại Bluetooth để phát sóng tên mới
+      if ((btMouseState === 'advertising' || btMouseState === 'connected') && oldMouseName !== mouseName) {
+        appendLog({ message: 'Tên chuột Bluetooth đã đổi. Đang phát sóng lại với tên mới...', type: 'info' });
+        await window.aircast.bluetooth.stop();
+        setTimeout(() => {
+          if (window.aircast && window.aircast.bluetooth) {
+            window.aircast.bluetooth.start(mouseName);
+          }
+        }, 600);
+      }
+
+      alert(`Đã lưu thành công!\n\n• Tên máy tính (AirPlay): ${deviceName}\n• Tên chuột không dây: ${mouseName}`);
     });
   }
 
@@ -491,12 +590,172 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================================================
   // BLUETOOTH MOUSE CONTROL LOGIC
   // ==========================================================================
+  function renderCompatibilityUI(info) {
+    if (!info) return;
+
+    // Đảm bảo đầy đủ danh sách kiểm tra tiếng Việt chuẩn không bị lỗi font
+    if (!info.checks || info.checks.length === 0) {
+      info.checks = [
+        {
+          title: 'Dịch vụ Bluetooth Windows (bthserv)',
+          passed: !!info.hasBluetoothService,
+          note: info.hasBluetoothService ? 'Đang chạy' : 'Chưa bật (vào services.msc để bật)'
+        },
+        {
+          title: `Phần cứng: ${info.adapterName || 'Bluetooth Adapter'}`,
+          passed: !!info.hasAdapter,
+          note: info.hasAdapter ? 'Đã nhận diện phần cứng' : 'Không tìm thấy thiết bị'
+        },
+        {
+          title: 'Trạng thái sóng Bluetooth',
+          passed: info.radioState === 'On',
+          note: info.radioState === 'On' ? 'Đang Bật (On)' : 'Đang Tắt (Cần gạt BẬT trong Settings)'
+        },
+        {
+          title: 'Hỗ trợ Bluetooth Low Energy (BLE)',
+          passed: !!info.isLowEnergySupported,
+          note: info.isLowEnergySupported ? 'Có hỗ trợ' : 'Không hỗ trợ BLE'
+        },
+        {
+          title: 'Chế độ thiết bị ngoại vi (BLE Peripheral Role)',
+          passed: !!info.isPeripheralRoleSupported,
+          note: info.isPeripheralRoleSupported ? 'Driver có hỗ trợ' : 'Driver không hỗ trợ'
+        },
+        {
+          title: 'Khả năng phát sóng chuột thực tế (GATT HID)',
+          passed: !!info.canBroadcastBle,
+          note: info.canBroadcastBle ? 'Phát sóng thành công' : 'Bị Windows chặn (Lỗi Aborted)'
+        }
+      ];
+    }
+
+    if (!info.recommendations || info.recommendations.length === 0) {
+      info.recommendations = [
+        'Cắm thêm USB Bluetooth Dongle 5.0/5.3 chuyên dụng (như TP-Link UB500, Baseus BA04, Orico) để máy tính phát sóng chuột chuẩn BLE HID.',
+        'Cập nhật driver card Bluetooth mới nhất từ trang chủ nhà sản xuất (Realtek/Intel).'
+      ];
+    }
+
+    if (!info.reason) {
+      info.reason = info.isCompatible
+        ? 'Phần cứng Bluetooth đạt tiêu chuẩn 100%, sẵn sàng điều khiển chuột cho iPhone.'
+        : 'Card Bluetooth tích hợp bị Windows chặn phát sóng ngoại vi (Lỗi Aborted). Vì vậy iPhone không thể dò thấy tín hiệu chuột Bluetooth.';
+    }
+
+    btCompatibilityInfo = info;
+    btIsCompatible = !!info.isCompatible;
+
+    if (!btIsCompatible) {
+      if (btCompatBanner) {
+        btCompatBanner.style.display = 'block';
+      }
+      if (btCompatSummaryText) {
+        btCompatSummaryText.textContent = info.reason;
+      }
+
+      // Điền danh sách tiêu chí kiểm tra
+      if (btCompatChecklist && Array.isArray(info.checks)) {
+        btCompatChecklist.innerHTML = info.checks.map(chk => `
+          <div class="compat-check-item ${chk.passed ? 'passed' : 'failed'}">
+            <div class="check-icon">${chk.passed ? '✓' : '✗'}</div>
+            <div class="check-details">
+              <div class="check-title" title="${chk.title}">${chk.title}</div>
+              <div class="check-note">${chk.note || (chk.passed ? 'Đạt yêu cầu' : 'Không đạt')}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Điền các hành động khuyến nghị
+      if (btCompatRecommendations && Array.isArray(info.recommendations)) {
+        btCompatRecommendations.innerHTML = info.recommendations.map(rec => `
+          <li>${rec}</li>
+        `).join('');
+      }
+
+      // Khóa nút và trạng thái giao diện
+      lockBtMouseUI(info.reason);
+    } else {
+      if (btCompatBanner) {
+        btCompatBanner.style.display = 'none';
+      }
+      unlockBtMouseUI();
+    }
+  }
+
+  function lockBtMouseUI(reason = '') {
+    if (btnToggleBtMouse) {
+      btnToggleBtMouse.classList.add('locked');
+      btnToggleBtMouse.classList.remove('active');
+      btnToggleBtMouse.title = reason || 'Tính năng Chuột Bluetooth bị khóa do phần cứng không đáp ứng.';
+      if (btnToggleBtMouseText) {
+        btnToggleBtMouseText.textContent = '🔒 Chuột Bluetooth Bị Khóa';
+      }
+    }
+    if (btMouseStatusPill) {
+      btMouseStatusPill.className = 'status-pill status-locked';
+      btMouseStatusPill.textContent = 'Chưa Đủ Điều Kiện Phần Cứng ⚠️';
+    }
+    if (headerBtMouseBadge) {
+      headerBtMouseBadge.className = 'bt-mouse-header-badge locked';
+      if (headerBtMouseText) {
+        headerBtMouseText.textContent = 'Chuột: Bị Khóa';
+      }
+    }
+  }
+
+  function unlockBtMouseUI() {
+    if (btnToggleBtMouse) {
+      btnToggleBtMouse.classList.remove('locked');
+      btnToggleBtMouse.title = 'Bật hoặc tắt chuột Bluetooth để điều khiển iPhone';
+    }
+    updateBtMouseUI(btMouseState, btConnectedClients);
+  }
+
+  async function runBluetoothCompatibilityCheck(isManual = false) {
+    if (!window.aircast || !window.aircast.bluetooth || !window.aircast.bluetooth.checkCompatibility) return;
+
+    if (btnRecheckBt) {
+      btnRecheckBt.classList.add('scanning');
+      const textSpan = btnRecheckBt.querySelector('span');
+      if (textSpan) textSpan.textContent = 'Đang quét...';
+    }
+
+    try {
+      const res = await window.aircast.bluetooth.checkCompatibility();
+      renderCompatibilityUI(res);
+      if (isManual) {
+        if (res.isCompatible) {
+          alert('Tuyệt vời! Máy tính của bạn đã đáp ứng đầy đủ điều kiện để phát chuột Bluetooth cho iPhone.');
+        } else {
+          if (btCompatBanner) btCompatBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi kiểm tra phần cứng Bluetooth:', err);
+    } finally {
+      if (btnRecheckBt) {
+        btnRecheckBt.classList.remove('scanning');
+        const textSpan = btnRecheckBt.querySelector('span');
+        if (textSpan) textSpan.textContent = 'Quét Lại Phần Cứng';
+      }
+    }
+  }
+
   function updateBtMouseUI(status, clientCount = 0) {
     btMouseState = status;
     btConnectedClients = clientCount;
 
+    // Nếu không tương thích hoặc trạng thái unsupported -> Luôn hiển thị trạng thái khóa
+    if (!btIsCompatible || status === 'unsupported') {
+      lockBtMouseUI(btCompatibilityInfo ? btCompatibilityInfo.reason : 'Phần cứng Bluetooth không hỗ trợ phát sóng BLE HID.');
+      if (btCompatBanner) btCompatBanner.style.display = 'block';
+      return;
+    }
+
     if (status === 'connected') {
       if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('locked');
         btnToggleBtMouse.classList.add('active');
         btnToggleBtMouseText.textContent = 'Tắt Chuột Bluetooth';
       }
@@ -510,6 +769,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else if (status === 'advertising') {
       if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('locked');
         btnToggleBtMouse.classList.add('active');
         btnToggleBtMouseText.textContent = 'Dừng Phát Sóng';
       }
@@ -523,6 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else if (status === 'starting') {
       if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('locked');
         btnToggleBtMouse.classList.remove('active');
         btnToggleBtMouseText.textContent = 'Đang Khởi Động...';
       }
@@ -536,6 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else {
       if (btnToggleBtMouse) {
+        btnToggleBtMouse.classList.remove('locked');
         btnToggleBtMouse.classList.remove('active');
         btnToggleBtMouseText.textContent = 'Bật Chuột Bluetooth';
       }
@@ -555,17 +817,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnToggleBtMouse.addEventListener('click', async () => {
       if (!window.aircast || !window.aircast.bluetooth) return;
 
+      // Nếu máy tính không đủ điều kiện -> Khóa lại và cảnh báo người dùng xem hướng dẫn
+      if (!btIsCompatible || btMouseState === 'unsupported') {
+        if (btCompatBanner) {
+          btCompatBanner.style.display = 'block';
+          btCompatBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        alert('⚠️ Tính năng Chuột Bluetooth đã bị khóa!\n\nLý do: Phần cứng Bluetooth trên máy tính chưa đủ điều kiện (bị Windows hủy phát sóng thiết bị ngoại vi BLE HID, khiến iPhone không thể dò thấy chuột).\n\nVui lòng xem hướng dẫn chi tiết trên màn hình để trang bị thêm USB Bluetooth 5.0/5.3.');
+        return;
+      }
+
       if (btMouseState === 'advertising' || btMouseState === 'connected' || btMouseState === 'starting') {
         updateBtMouseUI('starting');
         await window.aircast.bluetooth.stop();
       } else {
         updateBtMouseUI('starting');
-        const res = await window.aircast.bluetooth.start(deviceName || 'AirCast Mouse');
+        const res = await window.aircast.bluetooth.start(mouseName || 'AirCast Mouse');
         if (!res.success) {
           updateBtMouseUI('stopped');
           alert(`Không thể bật chuột Bluetooth: ${res.error}`);
         }
       }
+    });
+  }
+
+  // Quét lại phần cứng Bluetooth khi bấm nút
+  if (btnRecheckBt) {
+    btnRecheckBt.addEventListener('click', () => {
+      runBluetoothCompatibilityCheck(true);
     });
   }
 
@@ -862,11 +1141,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const initialBt = await window.aircast.bluetooth.getStatus();
       if (initialBt) {
+        if (initialBt.compatibilityInfo) {
+          renderCompatibilityUI(initialBt.compatibilityInfo);
+        }
         updateBtMouseUI(initialBt.status, initialBt.connectedClients || 0);
       }
     } catch (e) {
       console.error('Lỗi lấy trạng thái ban đầu chuột Bluetooth:', e);
     }
+
+    // Tự động quét kiểm tra phần cứng Bluetooth của máy tính khi mở ứng dụng
+    runBluetoothCompatibilityCheck();
   }
 
   // ==========================================================================

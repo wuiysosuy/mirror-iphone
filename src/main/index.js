@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { exec } = require('child_process');
 const ServerManager = require('./server-manager');
 const MobileWebServer = require('./web-server');
@@ -225,7 +226,72 @@ ipcMain.handle('updater:install', async (event, filePath) => {
   return { success: false, error: 'Chưa khởi tạo AppUpdater' };
 });
 
+// Device Names Config (AirPlay & Bluetooth Mouse)
+function getAirplayConfigPath() {
+  return path.join(getBaseDir(), 'bin', 'airplay_settings.ini');
+}
+
+function readAirplayDeviceName() {
+  const iniPath = getAirplayConfigPath();
+  try {
+    if (fs.existsSync(iniPath)) {
+      const content = fs.readFileSync(iniPath, 'utf8');
+      const match = content.match(/^DeviceName=(.*)$/m);
+      if (match && match[1].trim()) {
+        return match[1].trim();
+      }
+    }
+  } catch (e) {
+    console.error('Lỗi đọc airplay_settings.ini:', e);
+  }
+  return 'AirCast-PC';
+}
+
+function writeAirplayDeviceName(newName) {
+  const iniPath = getAirplayConfigPath();
+  try {
+    let content = '';
+    if (fs.existsSync(iniPath)) {
+      content = fs.readFileSync(iniPath, 'utf8');
+      if (/^DeviceName=.*$/m.test(content)) {
+        content = content.replace(/^DeviceName=.*$/m, `DeviceName=${newName}`);
+      } else if (/\[General\]/i.test(content)) {
+        content = content.replace(/\[General\]/i, `[General]\r\nDeviceName=${newName}`);
+      } else {
+        content = `[General]\r\nDeviceName=${newName}\r\n` + content;
+      }
+    } else {
+      content = `[General]\r\nDeviceName=${newName}\r\n`;
+    }
+    fs.writeFileSync(iniPath, content, 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Lỗi lưu airplay_settings.ini:', e);
+    return false;
+  }
+}
+
+ipcMain.handle('settings:get-device-names', async () => {
+  return {
+    airplayName: readAirplayDeviceName()
+  };
+});
+
+ipcMain.handle('settings:save-device-names', async (event, data) => {
+  const { airplayName, mouseName } = data || {};
+  let savedAirplay = true;
+  if (airplayName && airplayName.trim()) {
+    savedAirplay = writeAirplayDeviceName(airplayName.trim());
+  }
+  return { success: savedAirplay, airplayName, mouseName };
+});
+
 // Bluetooth Mouse Handlers
+ipcMain.handle('bluetooth:check-compatibility', async () => {
+  if (!bluetoothMouseManager) bluetoothMouseManager = new BluetoothMouseManager(getBaseDir());
+  return bluetoothMouseManager.checkCompatibility();
+});
+
 ipcMain.handle('bluetooth:get-status', async () => {
   if (bluetoothMouseManager) return bluetoothMouseManager.getStatus();
   return { status: 'stopped', connectedClients: 0 };

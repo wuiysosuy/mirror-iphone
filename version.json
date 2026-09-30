@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
-  "releaseName": "AirCast Studio v1.1.0 - Điều Khiển Cảm Ứng Chuột Bluetooth & Sửa Lỗi QR",
-  "releaseDate": "2026-09-27",
-  "releaseNotes": "• Tính năng điều khiển trực tiếp trên màn hình AirPlay Receiver qua Bluetooth HID Mouse\n• Thao tác chạm (Tap), cuộn/lướt video (Swipe/Drag) tự nhiên mượt mà trên iPhone\n• Sửa triệt để lỗi không hiển thị mã QR và nút bật chuột Bluetooth\n• Tối ưu tốc độ phản hồi 1.25x đầm tay, chuẩn xác và không bị trễ",
+  "version": "1.1.1",
+  "releaseName": "AirCast Studio v1.1.1 - Quét Tương Thích Bluetooth & Khóa An Toàn",
+  "releaseDate": "2026-09-30",
+  "releaseNotes": "• Tự động quét kiểm tra 6 tiêu chuẩn phần cứng Bluetooth trên máy tính PC\n• Khóa tính năng chuột an toàn và cảnh báo nếu hệ điều hành Windows chặn phát sóng ngoại vi (Lỗi Aborted)\n• Bảng chẩn đoán trực quan với checklist xanh/đỏ và hướng dẫn chi tiết trang bị USB Bluetooth 5.0/5.3\n• Sửa lỗi hiển thị tiếng Việt UTF-8 sắc nét, không bị vỡ font\n• Tối ưu start.bat tự động nhận đường dẫn Node.js portable",
   "downloadUrl": "https://github.com/wuiysosuy/mirror-iphone/releases/latest",
   "githubUrl": "https://github.com/wuiysosuy/mirror-iphone/releases"
 }

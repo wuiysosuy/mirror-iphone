@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
@@ -9,9 +9,10 @@ class BluetoothMouseManager {
     this.binDir = path.join(baseDir, 'bin');
     this.exePath = path.join(this.binDir, 'AirCastMouseServer.exe');
     this.process = null;
-    this.status = 'stopped'; // 'stopped' | 'starting' | 'advertising' | 'connected' | 'error'
+    this.status = 'stopped'; // 'stopped' | 'starting' | 'advertising' | 'connected' | 'error' | 'unsupported'
     this.connectedClients = 0;
     this.adapterInfo = null;
+    this.compatibilityInfo = null;
     this.onStatusChange = null;
     this.onLog = null;
     this.onClientsChange = null;
@@ -25,10 +26,10 @@ class BluetoothMouseManager {
     }
   }
 
-  setStatus(newStatus) {
+  setStatus(newStatus, extra = null) {
     this.status = newStatus;
     if (this.onStatusChange) {
-      this.onStatusChange(newStatus);
+      this.onStatusChange(newStatus, extra);
     }
   }
 
@@ -117,6 +118,12 @@ class BluetoothMouseManager {
         if (data.status === 'Started') {
           this.setStatus(this.connectedClients > 0 ? 'connected' : 'advertising');
           this.log('Chuột Bluetooth đang phát sóng (Advertising)...', 'info');
+        } else if (data.status === 'Aborted') {
+          this.setStatus('unsupported');
+          this.log('❌ Phát sóng Bluetooth bị Windows hủy (Aborted). Card Bluetooth của máy không hỗ trợ phát sóng ngoại vi (BLE Peripheral Advertising).', 'error');
+          if (this.onStatusChange) {
+            this.onStatusChange('unsupported', 'Card Bluetooth trên máy không hỗ trợ phát sóng BLE (Lỗi Aborted).');
+          }
         }
         break;
 
@@ -227,11 +234,112 @@ class BluetoothMouseManager {
     this.sendCommand({ cmd: 'sync_cursor' });
   }
 
+  formatCompatibilityData(hw) {
+    const checks = [
+      {
+        title: 'Dịch vụ Bluetooth Windows (bthserv)',
+        passed: !!hw.hasBluetoothService,
+        note: hw.hasBluetoothService ? 'Đang chạy' : 'Chưa bật (vào services.msc để bật)'
+      },
+      {
+        title: `Phần cứng: ${hw.adapterName || 'Bluetooth Adapter'}`,
+        passed: !!hw.hasAdapter,
+        note: hw.hasAdapter ? 'Đã nhận diện phần cứng' : 'Không tìm thấy thiết bị'
+      },
+      {
+        title: 'Trạng thái sóng Bluetooth',
+        passed: hw.radioState === 'On',
+        note: hw.radioState === 'On' ? 'Đang Bật (On)' : 'Đang Tắt (Cần gạt BẬT trong Settings)'
+      },
+      {
+        title: 'Hỗ trợ Bluetooth Low Energy (BLE)',
+        passed: !!hw.isLowEnergySupported,
+        note: hw.isLowEnergySupported ? 'Có hỗ trợ' : 'Không hỗ trợ BLE'
+      },
+      {
+        title: 'Chế độ thiết bị ngoại vi (BLE Peripheral Role)',
+        passed: !!hw.isPeripheralRoleSupported,
+        note: hw.isPeripheralRoleSupported ? 'Driver có hỗ trợ' : 'Driver không hỗ trợ'
+      },
+      {
+        title: 'Khả năng phát sóng chuột thực tế (GATT HID)',
+        passed: !!hw.canBroadcastBle,
+        note: hw.canBroadcastBle ? 'Phát sóng thành công' : 'Bị Windows chặn (Lỗi Aborted)'
+      }
+    ];
+
+    const recommendations = [];
+    let reason = '';
+
+    if (!hw.hasBluetoothService) {
+      recommendations.push('Bật dịch vụ "Bluetooth Support Service" trong Windows Services (services.msc).');
+    }
+    if (!hw.hasAdapter) {
+      recommendations.push('Máy tính chưa có card Bluetooth. Cần cắm USB Bluetooth Dongle 5.0/5.3 vào máy tính.');
+    }
+    if (hw.radioState !== 'On') {
+      recommendations.push('Mở Cài đặt Windows (Settings > Bluetooth & devices) và gạt BẬT Bluetooth.');
+    }
+    if (!hw.canBroadcastBle || !hw.isPeripheralRoleSupported) {
+      reason = 'Card Bluetooth tích hợp bị Windows chặn phát sóng ngoại vi (Lỗi Aborted). Vì vậy iPhone không thể dò thấy tín hiệu chuột Bluetooth.';
+      recommendations.push('Cắm thêm USB Bluetooth Dongle 5.0/5.3 chuyên dụng (như TP-Link UB500, Baseus BA04, Orico) để máy tính phát sóng chuột chuẩn BLE HID.');
+      recommendations.push('Cập nhật driver card Bluetooth mới nhất từ trang chủ nhà sản xuất (Realtek/Intel).');
+    }
+
+    if (hw.isCompatible) {
+      reason = 'Phần cứng Bluetooth của máy tính đạt chuẩn 100%, sẵn sàng phát chuột không dây cho iPhone.';
+    } else if (!reason) {
+      reason = 'Phần cứng Bluetooth của máy tính chưa đáp ứng đủ điều kiện phát sóng chuột.';
+    }
+
+    return {
+      ...hw,
+      isCompatible: !!hw.isCompatible,
+      reason,
+      checks,
+      recommendations
+    };
+  }
+
+  async checkCompatibility() {
+    const scriptPath = path.join(this.baseDir, 'scripts', 'check_bt.ps1');
+    return new Promise((resolve) => {
+      exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, { encoding: 'utf8' }, (error, stdout) => {
+        try {
+          if (stdout && stdout.trim()) {
+            const hw = JSON.parse(stdout.trim());
+            const data = this.formatCompatibilityData(hw);
+            this.compatibilityInfo = data;
+            if (!data.isCompatible) {
+              this.status = 'unsupported';
+              this.setStatus('unsupported', data);
+            }
+            resolve(data);
+            return;
+          }
+        } catch (e) {
+          this.log(`Lỗi phân tích JSON kiểm tra phần cứng BT: ${e.message}`, 'warn');
+        }
+        const fallback = this.formatCompatibilityData({
+          hasBluetoothService: false,
+          hasAdapter: false,
+          radioState: 'Off',
+          isCompatible: false
+        });
+        this.compatibilityInfo = fallback;
+        this.status = 'unsupported';
+        this.setStatus('unsupported', fallback);
+        resolve(fallback);
+      });
+    });
+  }
+
   getStatus() {
     return {
       status: this.status,
       connectedClients: this.connectedClients,
-      adapterInfo: this.adapterInfo
+      adapterInfo: this.adapterInfo,
+      compatibilityInfo: this.compatibilityInfo
     };
   }
 

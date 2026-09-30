@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+AirCast Studio/
 
 # Logs & temp benchmarks
 *.log
@@ -25,3 +26,10 @@ desktop.ini
 src/native/**/bin/
 src/native/**/obj/
 *.pdb
+
+# Local shims
+node.cmd
+npm.cmd
+electron.cmd
+
+

@@ -72,7 +72,7 @@
         <div class="app-version-card">
           <div class="app-version-info">
             <span class="version-label">Phiên bản</span>
-            <span class="version-number" id="sidebar-version-number">v1.1.0</span>
+            <span class="version-number" id="sidebar-version-number">v1.1.1</span>
           </div>
           <button class="btn-sidebar-update" id="btn-sidebar-check-update" title="Kiểm tra bản cập nhật">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -176,7 +176,10 @@
               <div class="server-specs">
                 <div class="spec-item">
                   <span class="spec-label">Tên máy hiển thị:</span>
-                  <span class="spec-val" id="val-device-name">AirCast-PC</span>
+                  <div class="spec-val-wrap">
+                    <span class="spec-val highlight" id="val-device-name">AirCast-PC</span>
+                    <button class="btn-tag-edit" id="btn-quick-edit-pc" title="Đổi tên máy tính hiển thị trên iPhone">✏️ Đổi tên</button>
+                  </div>
                 </div>
                 <div class="spec-item">
                   <span class="spec-label">Địa chỉ IP:</span>
@@ -239,6 +242,11 @@
               </div>
               <h3 class="hero-title">Điều Khiển Trực Tiếp Trên Màn Hình iPhone</h3>
               <p class="hero-desc">Rê chuột, chạm và vuốt <strong>trực tiếp lên màn hình iPhone</strong> bên dưới. Con trỏ và thao tác cảm ứng sẽ phản hồi tức thì.</p>
+              <div class="bt-name-badge-group">
+                <span class="spec-label">Tên Chuột Bluetooth:</span>
+                <span class="spec-val highlight" id="val-mouse-name">AirCast Mouse</span>
+                <button class="btn-tag-edit" id="btn-quick-edit-mouse" title="Đổi tên chuột Bluetooth hiển thị trên iPhone">✏️ Đổi tên</button>
+              </div>
             </div>
 
             <div class="header-right-meta">
@@ -265,6 +273,67 @@
                 </svg>
                 <span id="btn-toggle-bt-mouse-text">Bật Chuột Bluetooth</span>
               </button>
+            </div>
+          </div>
+
+          <!-- Bluetooth Compatibility Banner (Hiển thị khi máy tính chưa đủ điều kiện phần cứng) -->
+          <div class="bt-compat-banner" id="bt-compat-banner" style="display: none;">
+            <div class="bt-compat-header">
+              <div class="bt-compat-title-wrap">
+                <div class="bt-compat-icon-badge">⚠️</div>
+                <div class="bt-compat-title-text">
+                  <div class="bt-compat-status-tag">CHƯA ĐỦ ĐIỀU KIỆN PHẦN CỨNG • TÍNH NĂNG BỊ KHÓA</div>
+                  <h4 class="bt-compat-title">Máy Tính Chưa Đạt Chuẩn Phát Chuột Bluetooth Cho iPhone</h4>
+                  <p class="bt-compat-subtitle" id="bt-compat-summary-text">
+                    Card Bluetooth hiện tại không thể phát sóng thiết bị ngoại vi (BLE Peripheral HID) hoặc bị Windows chặn phát sóng, khiến iPhone không thể tìm thấy tín hiệu chuột.
+                  </p>
+                </div>
+              </div>
+              <button class="btn-recheck-bt" id="btn-recheck-bt" title="Quét kiểm tra lại phần cứng Bluetooth">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon">
+                  <path d="M23 4v6h-6"></path>
+                  <path d="M1 20v-6h6"></path>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Quét Lại Phần Cứng</span>
+              </button>
+            </div>
+
+            <!-- Kết quả kiểm tra chi tiết các tiêu chí phần cứng -->
+            <div class="bt-compat-body">
+              <div class="compat-section-label">Kết Quả Kiểm Tra Phần Cứng & Dịch Vụ:</div>
+              <div class="compat-checklist" id="bt-compat-checklist">
+                <!-- Sẽ được điền tự động qua JavaScript -->
+              </div>
+
+              <!-- Hướng dẫn cụ thể cần làm gì để đủ điều kiện -->
+              <div class="compat-guidance-box">
+                <div class="guidance-header">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>Cần Làm Gì Để Đủ Điều Kiện Mở Khóa Chuột Bluetooth?</span>
+                </div>
+                <div class="guidance-content">
+                  <ul class="compat-recommendations-list" id="bt-compat-recommendations">
+                    <!-- Sẽ được điền tự động -->
+                  </ul>
+                  <div class="compat-dongle-recommend">
+                    <div class="dongle-rec-badge">GỢI Ý PHẦN CỨNG TƯƠNG THÍCH TỐT NHẤT</div>
+                    <p class="dongle-rec-desc">
+                      Để máy tính biến thành chuột Bluetooth điều khiển iPhone mượt mà, bạn chỉ cần cắm thêm một chiếc <strong>USB Bluetooth 5.0 / 5.3</strong> chuẩn BLE Peripheral (giá ~60.000đ - 120.000đ):
+                    </p>
+                    <div class="dongle-chips">
+                      <span class="dongle-chip">⭐ TP-Link UB500 (Bluetooth 5.3)</span>
+                      <span class="dongle-chip">⭐ Baseus Wireless Adapter BA04</span>
+                      <span class="dongle-chip">⭐ Orico BTA-508 / BTA-608</span>
+                      <span class="dongle-chip">⭐ Ugreen CM390 / CM591</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -525,7 +594,7 @@
                 <h4>Cách 3: Điều Khiển Màn Hình Bằng Chuột Máy Tính (AssistiveTouch)</h4>
                 <p>1. Bấm <strong>"Bật Chuột Bluetooth"</strong> trên Bảng điều khiển.<br>
                 2. Trên iPhone mở <strong>Cài đặt &gt; Trợ năng &gt; Cảm ứng &gt; AssistiveTouch: BẬT</strong>.<br>
-                3. Mở <strong>Cài đặt &gt; Bluetooth</strong> trên iPhone và nhấn kết nối với máy tính.<br>
+                3. Mở <strong>Cài đặt &gt; Bluetooth</strong> trên iPhone và nhấn kết nối với thiết bị <code id="guide-mouse-name-code">AirCast Mouse</code>.<br>
                 4. Rê chuột vào màn hình trên PC để chạm, click và vuốt lướt màn hình tức thì!</p>
               </div>
             </div>
@@ -666,16 +735,43 @@
       <!-- TAB 4: SETTINGS -->
       <section class="tab-pane" id="tab-settings">
         <div class="settings-card card">
-          <h3>Cài Đặt Hệ Thống</h3>
+          <div class="card-header-with-badge">
+            <h3>Thiết Lập Tên Thiết Bị & Kết Nối</h3>
+            <span class="status-pill status-running">Đồng Bộ Hệ Thống</span>
+          </div>
+          <p class="settings-card-desc">Cấu hình tên máy tính và tên chuột không dây để bạn dễ dàng nhận diện và chọn đúng thiết bị trên iPhone khi kết nối.</p>
 
           <div class="settings-group">
             <div class="setting-row">
               <div class="setting-meta">
-                <label>Tên Máy Tính Hiển Thị</label>
-                <span>Tên hiển thị trên iPhone khi tìm kiếm phản chiếu</span>
+                <label class="setting-label-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="setting-icon">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                  <span>Tên Máy Tính (Phản Chiếu AirPlay 2)</span>
+                </label>
+                <span>Tên hiển thị trong <strong>Trung tâm điều khiển &gt; Phản chiếu màn hình (Screen Mirroring)</strong> của iPhone</span>
               </div>
               <div class="setting-control">
-                <input type="text" id="input-device-name" class="text-input" value="AirCast-PC">
+                <input type="text" id="input-device-name" class="text-input" value="AirCast-PC" placeholder="Ví dụ: AirCast-PC, PC-PhongKhach">
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <label class="setting-label-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="setting-icon">
+                    <rect x="5" y="2" width="14" height="20" rx="7"></rect>
+                    <path d="M12 6v4"></path>
+                  </svg>
+                  <span>Tên Chuột Không Dây (Bluetooth HID Mouse)</span>
+                </label>
+                <span>Tên hiển thị trong <strong>Cài đặt &gt; Bluetooth</strong> trên iPhone để ghép đôi điều khiển màn hình</span>
+              </div>
+              <div class="setting-control">
+                <input type="text" id="input-mouse-name" class="text-input" value="AirCast Mouse" placeholder="Ví dụ: AirCast Mouse, Magic Mouse">
               </div>
             </div>
 
@@ -708,8 +804,21 @@
           </div>
 
           <div class="settings-footer">
-            <button class="btn-primary" id="btn-save-settings">Lưu Cài Đặt</button>
-            <button class="btn-secondary" id="btn-restart-server">Khởi Động Lại Dịch Vụ</button>
+            <button class="btn-primary" id="btn-save-settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Lưu Tên Thiết Bị & Cài Đặt</span>
+            </button>
+            <button class="btn-secondary" id="btn-restart-server">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Khởi Động Lại Dịch Vụ</span>
+            </button>
           </div>
         </div>
 
@@ -724,10 +833,10 @@
             <div class="setting-row">
               <div class="setting-meta">
                 <label>Phiên Bản Hiện Tại</label>
-                <span id="settings-current-ver-desc">Đang chạy AirCast Studio v1.1.0</span>
+                <span id="settings-current-ver-desc">Đang chạy AirCast Studio v1.1.1</span>
               </div>
               <div class="setting-control">
-                <span class="version-badge-tag" id="settings-current-version-tag">v1.1.0</span>
+                <span class="version-badge-tag" id="settings-current-version-tag">v1.1.1</span>
               </div>
             </div>
 
@@ -795,7 +904,7 @@
             <h3>Bản Cập Nhật Mới Đã Sẵn Sàng!</h3>
             <span class="modal-version-tag" id="modal-new-version-tag">v1.0.1</span>
           </div>
-          <p class="update-subtext">Phiên bản hiện tại: <span id="modal-current-version">v1.1.0</span></p>
+          <p class="update-subtext">Phiên bản hiện tại: <span id="modal-current-version">v1.1.1</span></p>
         </div>
       </div>
 

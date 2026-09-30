@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('aircast', {
   checkBonjour: () => ipcRenderer.invoke('bonjour:check'),
   installBonjour: () => ipcRenderer.invoke('bonjour:install'),
 
+  // Device Names
+  getDeviceNames: () => ipcRenderer.invoke('settings:get-device-names'),
+  saveDeviceNames: (data) => ipcRenderer.invoke('settings:save-device-names', data),
+
   // Listeners
   onStatusChange: (callback) => {
     const handler = (event, status) => callback(status);
@@ -71,6 +75,7 @@ contextBridge.exposeInMainWorld('aircast', {
 
   // Bluetooth Mouse Control
   bluetooth: {
+    checkCompatibility: () => ipcRenderer.invoke('bluetooth:check-compatibility'),
     getStatus: () => ipcRenderer.invoke('bluetooth:get-status'),
     start: (name) => ipcRenderer.invoke('bluetooth:start', name),
     stop: () => ipcRenderer.invoke('bluetooth:stop'),
