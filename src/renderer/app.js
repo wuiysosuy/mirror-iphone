@@ -1342,20 +1342,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (res && res.success) {
         downloadedInstallerPath = res.filePath;
-        progressStatusTitle.textContent = '✓ Tải hoàn tất! Sẵn sàng nâng cấp.';
+        progressStatusTitle.textContent = '✓ Tải hoàn tất! Đang tự động mở cài đặt...';
         progressPercentage.textContent = '100%';
         progressBarFill.style.width = '100%';
-        progressTransferred.textContent = 'Đã tải xong toàn bộ file cài đặt.';
+        progressTransferred.textContent = 'Đang tiến hành cài đặt nâng cấp...';
         progressSpeed.textContent = '';
 
         btnModalStartDownload.style.display = 'none';
         btnModalInstallNow.style.display = 'inline-flex';
+        btnModalInstallNow.textContent = '⚡ Đang Khởi Chạy Cài Đặt...';
+        btnModalInstallNow.disabled = true;
         btnModalCancel.textContent = 'Đóng';
 
         appendLog({
-          message: '✓ Tải bản cập nhật thành công! Nhấn "Cài Đặt & Khởi Động Lại" để hoàn tất.',
+          message: '✓ Tải bản cập nhật thành công! Đang tự động mở trình cài đặt...',
           type: 'success'
         });
+
+        // Tự động mở trình cài đặt nâng cấp ngay lập tức
+        setTimeout(() => {
+          installDownloadedUpdate();
+        }, 1000);
       }
     } catch (err) {
       isDownloading = false;
