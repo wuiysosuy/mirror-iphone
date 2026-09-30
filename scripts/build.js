@@ -3,7 +3,7 @@ process.noAsar = true;
 const builder = require('electron-builder');
 const Platform = builder.Platform;
 
-console.log('Bắt đầu build AirCast Studio v1.1.1...');
+console.log(`Bắt đầu build AirCast Studio v${require('../package.json').version}...`);
 
 builder.build({
   targets: Platform.WINDOWS.createTarget(),

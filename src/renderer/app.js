@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   let autoCheckUpdate = localStorage.getItem('aircast_auto_update') !== 'false';
   let cachedUpdateInfo = null;
   let downloadedInstallerPath = null;
-  let isDownloading = false;
 
   // Bluetooth Mouse State
   let btMouseState = 'stopped';
@@ -1183,6 +1182,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Trạng thái cập nhật: idle | downloading | ready | installing | error
+  let updateState = 'idle';
+  let installWhenReady = false; // người dùng đã bấm "Cập nhật ngay" trong lúc đang tải
+
+  function showDownloadBox(title) {
+    downloadProgressBox.style.display = 'block';
+    progressStatusTitle.textContent = title;
+  }
+
+  // Đồng bộ nút bấm trên banner / modal / settings theo trạng thái hiện tại
+  function renderUpdateButtons() {
+    const ver = cachedUpdateInfo ? `v${cachedUpdateInfo.latestVersion}` : '';
+    const labels = {
+      idle: 'Cập Nhật Ngay',
+      downloading: installWhenReady ? 'Sẽ tự cài khi tải xong...' : 'Cập Nhật Ngay',
+      ready: 'Cập Nhật Ngay',
+      installing: 'Đang cài đặt...',
+      error: 'Thử Lại'
+    };
+    const label = labels[updateState] || 'Cập Nhật Ngay';
+    const busy = updateState === 'installing' || (updateState === 'downloading' && installWhenReady);
+
+    btnModalStartDownload.style.display = 'inline-flex';
+    btnModalStartDownload.disabled = busy;
+    btnModalDownloadText.textContent = label;
+    btnModalInstallNow.style.display = 'none';
+
+    if (btnBannerViewUpdate) {
+      btnBannerViewUpdate.textContent = label;
+      btnBannerViewUpdate.disabled = busy;
+    }
+    if (btnSettingsUpdateNow) {
+      btnSettingsUpdateNow.textContent = updateState === 'ready' ? `Cập Nhật Lên ${ver}` : label;
+      btnSettingsUpdateNow.disabled = busy;
+    }
+    if (bannerReleaseDesc && updateState === 'ready') {
+      bannerReleaseDesc.textContent = 'Đã tải xong. Bấm "Cập Nhật Ngay" — ứng dụng sẽ tự cài và mở lại.';
+    }
+  }
+
   function openUpdateModal(info) {
     if (!info) return;
     cachedUpdateInfo = info;
@@ -1191,29 +1230,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalCurrentVersion.textContent = `v${info.currentVersion || appVersion}`;
     modalReleaseNotes.textContent = info.releaseNotes || '• Bản cập nhật mới cải thiện hiệu năng và ổn định hệ thống.';
 
-    // Reset download progress UI
-    downloadProgressBox.style.display = 'none';
-    btnModalStartDownload.style.display = 'inline-flex';
-    btnModalStartDownload.disabled = false;
-    btnModalDownloadText.textContent = 'Tải & Cập Nhật Tự Động';
-    btnModalInstallNow.style.display = 'none';
-    btnModalCancel.textContent = 'Để Sau';
+    if (updateState === 'downloading') {
+      showDownloadBox('Đang tải bản cập nhật...');
+    } else if (updateState === 'ready') {
+      showDownloadBox('✓ Đã tải xong — sẵn sàng cài đặt');
+      progressPercentage.textContent = '100%';
+      progressBarFill.style.width = '100%';
+      progressTransferred.textContent = 'Bấm "Cập Nhật Ngay" để cài và tự mở lại ứng dụng.';
+      progressSpeed.textContent = '';
+    } else {
+      downloadProgressBox.style.display = 'none';
+    }
 
+    btnModalCancel.textContent = 'Để Sau';
+    renderUpdateButtons();
     updateModal.style.display = 'flex';
   }
 
+  // Đóng modal không hủy tải — bản cập nhật vẫn tiếp tục tải ngầm
   function closeUpdateModal() {
-    if (isDownloading) {
-      if (confirm('Bản cập nhật đang được tải xuống. Bạn có chắc muốn dừng tải?')) {
-        if (window.aircast && window.aircast.updater) {
-          window.aircast.updater.cancelDownload();
-        }
-        isDownloading = false;
-        updateModal.style.display = 'none';
-      }
-    } else {
-      updateModal.style.display = 'none';
-    }
+    updateModal.style.display = 'none';
   }
 
   async function checkForUpdates(silent = false) {
@@ -1234,10 +1270,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (result.hasUpdate) {
         cachedUpdateInfo = result;
 
-        // Bật badge thông báo trên Header
         if (headerUpdateBadge) headerUpdateBadge.style.display = 'block';
 
-        // Hiển thị Global Banner
         if (bannerNewVersion) bannerNewVersion.textContent = `v${result.latestVersion}`;
         if (bannerReleaseDesc && result.releaseNotes) {
           const firstLine = result.releaseNotes.split('\n')[0].replace(/^[•\-\*]\s*/, '');
@@ -1245,7 +1279,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (globalUpdateBanner) globalUpdateBanner.style.display = 'flex';
 
-        // Cập nhật card trong Settings
         if (settingsUpdatePill) {
           settingsUpdatePill.className = 'update-status-pill has-update';
           settingsUpdatePill.textContent = `Bản Mới: v${result.latestVersion}`;
@@ -1255,24 +1288,25 @@ document.addEventListener('DOMContentLoaded', async () => {
           updateStatusIcon.textContent = '★';
         }
         if (updateStatusMessage) {
-          updateStatusMessage.innerHTML = `<strong style="color:var(--accent-amber);">Đã tìm thấy bản cập nhật mới v${result.latestVersion}!</strong> Khuyên dùng nâng cấp để có trải nghiệm tốt nhất.`;
+          updateStatusMessage.innerHTML = `<strong style="color:var(--accent-amber);">Đã tìm thấy bản cập nhật mới v${result.latestVersion}!</strong> Bấm "Cập Nhật Ngay" — ứng dụng tự tải, tự cài và tự mở lại.`;
         }
-        if (btnSettingsUpdateNow) {
-          btnSettingsUpdateNow.style.display = 'inline-block';
-          btnSettingsUpdateNow.textContent = `Tải Bản v${result.latestVersion}`;
+        if (btnSettingsUpdateNow) btnSettingsUpdateNow.style.display = 'inline-block';
+
+        if (result.readyToInstall) {
+          updateState = 'ready';
+          downloadedInstallerPath = null;
+        }
+        renderUpdateButtons();
+
+        appendLog({ message: `🚀 Đã tìm thấy bản cập nhật mới v${result.latestVersion}.`, type: 'success' });
+
+        // Tự tải ngầm để khi người dùng bấm là cài được ngay
+        if (updateState === 'idle' || updateState === 'error') {
+          startDownloadUpdate();
         }
 
-        appendLog({
-          message: `🚀 Đã tìm thấy bản cập nhật mới v${result.latestVersion}! Vui lòng bấm Cập Nhật.`,
-          type: 'success'
-        });
-
-        // Nếu người dùng chủ động bấm kiểm tra thì tự động mở modal
-        if (!silent) {
-          openUpdateModal(result);
-        }
+        if (!silent) openUpdateModal(result);
       } else {
-        // Đang ở bản mới nhất
         if (headerUpdateBadge) headerUpdateBadge.style.display = 'none';
         if (globalUpdateBanner) globalUpdateBanner.style.display = 'none';
 
@@ -1303,34 +1337,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Bắt đầu tải bản cập nhật
+  // Tải bộ cài về (chạy ngầm). Nếu người dùng đã bấm "Cập nhật ngay" thì tải xong sẽ tự cài.
   async function startDownloadUpdate() {
-    if (!cachedUpdateInfo || !cachedUpdateInfo.downloadUrl) {
-      alert('Không tìm thấy link tải bản cập nhật.');
-      return;
-    }
+    if (!cachedUpdateInfo || updateState === 'downloading' || updateState === 'installing') return;
 
-    // Nếu link không phải file .exe (ví dụ link trang release GitHub)
-    if (!cachedUpdateInfo.downloadUrl.toLowerCase().endsWith('.exe')) {
-      if (window.aircast && window.aircast.openExternal) {
+    // Release không có file .exe -> chỉ còn cách mở trang GitHub
+    if (!cachedUpdateInfo.canAutoInstall) {
+      if (installWhenReady && window.aircast && window.aircast.openExternal) {
         window.aircast.openExternal(cachedUpdateInfo.githubUrl || cachedUpdateInfo.downloadUrl);
       }
+      installWhenReady = false;
       return;
     }
 
-    isDownloading = true;
-    downloadProgressBox.style.display = 'block';
-    btnModalStartDownload.disabled = true;
-    btnModalDownloadText.textContent = 'Đang Tải Xuống...';
-    btnModalCancel.textContent = 'Hủy Tải';
-
-    progressStatusTitle.textContent = 'Đang tải bản cập nhật...';
+    updateState = 'downloading';
+    renderUpdateButtons();
+    showDownloadBox('Đang tải bản cập nhật...');
     progressPercentage.textContent = '0%';
     progressBarFill.style.width = '0%';
     progressTransferred.textContent = 'Bắt đầu kết nối...';
     progressSpeed.textContent = '';
-
-    appendLog({ message: `Đang tải bản cập nhật v${cachedUpdateInfo.latestVersion}...`, type: 'info' });
+    appendLog({ message: `Đang tải ngầm bản cập nhật v${cachedUpdateInfo.latestVersion}...`, type: 'info' });
 
     try {
       const res = await window.aircast.updater.downloadUpdate({
@@ -1338,60 +1365,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         version: cachedUpdateInfo.latestVersion
       });
 
-      isDownloading = false;
-
-      if (res && res.success) {
-        downloadedInstallerPath = res.filePath;
-        progressStatusTitle.textContent = '✓ Tải hoàn tất! Đang tự động mở cài đặt...';
-        progressPercentage.textContent = '100%';
-        progressBarFill.style.width = '100%';
-        progressTransferred.textContent = 'Đang tiến hành cài đặt nâng cấp...';
-        progressSpeed.textContent = '';
-
-        btnModalStartDownload.style.display = 'none';
-        btnModalInstallNow.style.display = 'inline-flex';
-        btnModalInstallNow.textContent = '⚡ Đang Khởi Chạy Cài Đặt...';
-        btnModalInstallNow.disabled = true;
-        btnModalCancel.textContent = 'Đóng';
-
-        appendLog({
-          message: '✓ Tải bản cập nhật thành công! Đang tự động mở trình cài đặt...',
-          type: 'success'
-        });
-
-        // Tự động mở trình cài đặt nâng cấp ngay lập tức
-        setTimeout(() => {
-          installDownloadedUpdate();
-        }, 1000);
+      if (!res || !res.success) {
+        updateState = 'idle';
+        installWhenReady = false;
+        renderUpdateButtons();
+        return;
       }
+
+      downloadedInstallerPath = res.filePath;
+      updateState = 'ready';
+      showDownloadBox('✓ Đã tải xong — sẵn sàng cài đặt');
+      progressPercentage.textContent = '100%';
+      progressBarFill.style.width = '100%';
+      progressTransferred.textContent = 'Bấm "Cập Nhật Ngay" để cài và tự mở lại ứng dụng.';
+      progressSpeed.textContent = '';
+      renderUpdateButtons();
+      appendLog({ message: `✓ Bản cập nhật v${cachedUpdateInfo.latestVersion} đã sẵn sàng.`, type: 'success' });
+
+      if (installWhenReady) installDownloadedUpdate();
     } catch (err) {
-      isDownloading = false;
-      progressStatusTitle.textContent = `Lỗi tải file: ${err.message}`;
-      btnModalStartDownload.disabled = false;
-      btnModalDownloadText.textContent = 'Thử Lại';
-      btnModalCancel.textContent = 'Đóng';
+      updateState = 'error';
+      installWhenReady = false;
+      showDownloadBox(`Lỗi tải bản cập nhật: ${err.message}`);
+      progressSpeed.textContent = '';
+      renderUpdateButtons();
       appendLog({ message: `Tải bản cập nhật thất bại: ${err.message}`, type: 'error' });
     }
   }
 
-  // Khởi chạy file cài đặt để cập nhật
+  // Cài bản mới: bộ cài chạy im lặng, Windows hỏi quyền Admin 1 lần, xong tự mở lại app
   async function installDownloadedUpdate() {
-    if (!downloadedInstallerPath) {
-      alert('Không tìm thấy file cài đặt đã tải về.');
+    installWhenReady = false;
+    updateState = 'installing';
+    renderUpdateButtons();
+    showDownloadBox('⚡ Đang cài đặt bản mới... Vui lòng bấm "Yes" nếu Windows hỏi quyền.');
+    appendLog({ message: 'Đang cài đặt bản cập nhật, ứng dụng sẽ tự khởi động lại...', type: 'info' });
+
+    const res = await window.aircast.updater.installUpdate(downloadedInstallerPath);
+    if (!res || !res.success) {
+      updateState = 'ready';
+      renderUpdateButtons();
+      showDownloadBox(res && res.error ? res.error : 'Không thể cài đặt bản cập nhật.');
+      appendLog({ message: `Cài đặt cập nhật chưa thực hiện: ${res && res.error}`, type: 'error' });
       return;
     }
-
-    btnModalInstallNow.disabled = true;
-    btnModalInstallNow.textContent = 'Đang khởi chạy...';
-    appendLog({ message: 'Đang mở trình cài đặt bản mới...', type: 'info' });
-
-    await window.aircast.updater.installUpdate(downloadedInstallerPath);
+    progressTransferred.textContent = 'Ứng dụng sẽ đóng và tự mở lại sau ít giây.';
   }
 
-  // Lắng nghe tiến trình tải từ backend
+  // Nút "Cập Nhật Ngay" duy nhất: đã tải xong -> cài luôn; chưa xong -> tải rồi tự cài
+  function updateNow() {
+    if (!cachedUpdateInfo) {
+      checkForUpdates(false);
+      return;
+    }
+    if (updateState === 'ready') {
+      installDownloadedUpdate();
+      return;
+    }
+    installWhenReady = true;
+    openUpdateModal(cachedUpdateInfo);
+    if (updateState !== 'downloading') startDownloadUpdate();
+    renderUpdateButtons();
+  }
+
   if (window.aircast && window.aircast.updater) {
     window.aircast.updater.onDownloadProgress((prog) => {
-      if (!isDownloading) return;
+      if (updateState !== 'downloading') return;
       const pct = prog.percent || 0;
       progressPercentage.textContent = `${pct}%`;
       progressBarFill.style.width = `${pct}%`;
@@ -1402,6 +1441,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const speedMb = (prog.speedBytesPerSec / (1024 * 1024)).toFixed(2);
       progressSpeed.textContent = `${speedMb} MB/s`;
+
+      if (bannerReleaseDesc) bannerReleaseDesc.textContent = `Đang tải ngầm bản mới... ${pct}%`;
     });
   }
 
@@ -1425,15 +1466,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (btnSettingsUpdateNow) {
-    btnSettingsUpdateNow.addEventListener('click', () => {
-      if (cachedUpdateInfo) openUpdateModal(cachedUpdateInfo);
-    });
+    btnSettingsUpdateNow.addEventListener('click', updateNow);
   }
 
   if (btnBannerViewUpdate) {
-    btnBannerViewUpdate.addEventListener('click', () => {
-      if (cachedUpdateInfo) openUpdateModal(cachedUpdateInfo);
-    });
+    btnBannerViewUpdate.addEventListener('click', updateNow);
   }
 
   if (btnBannerDismiss) {
@@ -1469,11 +1506,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (btnModalStartDownload) {
-    btnModalStartDownload.addEventListener('click', startDownloadUpdate);
+    btnModalStartDownload.addEventListener('click', updateNow);
   }
 
   if (btnModalInstallNow) {
-    btnModalInstallNow.addEventListener('click', installDownloadedUpdate);
+    btnModalInstallNow.addEventListener('click', updateNow);
   }
 
   if (checkAutoUpdate) {

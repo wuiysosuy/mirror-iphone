@@ -9,8 +9,14 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const crypto = require('crypto');
+const { execFile } = require('child_process');
 
+// Luồng cập nhật "1 chạm":
+//   1. Mở app -> tự kiểm tra GitHub Releases
+//   2. Có bản mới -> tự tải nền bộ cài Setup (.exe) vào thư mục cache, kiểm tra SHA-256
+//   3. Người dùng bấm "Cập nhật ngay" -> chạy bộ cài ở chế độ im lặng (/S --force-run),
+//      Windows hỏi UAC 1 lần, bộ cài ghi đè đúng thư mục cũ rồi tự mở lại app.
 class AppUpdater {
   constructor(mainWindow, options = {}) {
     this.mainWindow = mainWindow;
@@ -18,11 +24,20 @@ class AppUpdater {
     this.repo = options.repo || 'mirror-iphone';
     this.currentVersion = (app && app.getVersion && app.getVersion()) || options.version || '1.0.0';
     this.activeDownloadRequest = null;
+    this.activeDownload = null; // Promise tải đang chạy (tránh tải trùng)
     this.downloadedFilePath = null;
+    this.latestInfo = null;
   }
 
   setMainWindow(window) {
     this.mainWindow = window;
+  }
+
+  getCacheDir() {
+    const base = app ? app.getPath('userData') : require('os').tmpdir();
+    const dir = path.join(base, 'updates');
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
   }
 
   // So sánh 2 phiên bản SemVer (trả về 1 nếu v1 > v2, -1 nếu v1 < v2, 0 nếu bằng nhau)
@@ -58,22 +73,22 @@ class AppUpdater {
         }
       }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          const nextUrl = res.headers.location.startsWith('http')
-            ? res.headers.location
-            : new URL(res.headers.location, url).href;
+          res.resume();
+          const nextUrl = new URL(res.headers.location, url).href;
           return resolve(this.fetchJson(nextUrl, maxRedirects - 1));
         }
 
         if (res.statusCode < 200 || res.statusCode >= 300) {
+          res.resume();
           return reject(new Error(`HTTP status: ${res.statusCode}`));
         }
 
         let rawData = '';
+        res.setEncoding('utf8');
         res.on('data', (chunk) => { rawData += chunk; });
         res.on('end', () => {
           try {
-            const parsed = JSON.parse(rawData);
-            resolve(parsed);
+            resolve(JSON.parse(rawData));
           } catch (e) {
             reject(new Error('Lỗi giải mã JSON từ máy chủ cập nhật: ' + e.message));
           }
@@ -88,42 +103,48 @@ class AppUpdater {
     });
   }
 
+  // Chọn đúng file bộ cài Setup trong danh sách assets (bỏ qua bản portable và .blockmap)
+  pickInstallerAsset(assets) {
+    if (!Array.isArray(assets)) return null;
+    const exes = assets.filter(a => a && a.name && /\.exe$/i.test(a.name) && a.browser_download_url);
+    return exes.find(a => /setup/i.test(a.name))
+      || exes.find(a => !/portable/i.test(a.name))
+      || null;
+  }
+
   // Kiểm tra cập nhật
   async checkForUpdates() {
     const defaultGithubUrl = `https://github.com/${this.owner}/${this.repo}/releases/latest`;
     let updateData = null;
 
-    // 1. Thử lấy từ GitHub Releases API chính thức
+    // 1. GitHub Releases API chính thức
     try {
       const releaseApiUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
       const release = await this.fetchJson(releaseApiUrl);
 
       if (release && release.tag_name) {
         const latestVer = release.tag_name.replace(/^[vV]/, '');
-        let downloadUrl = release.html_url || defaultGithubUrl;
-
-        // Tìm file .exe trong danh sách assets
-        if (Array.isArray(release.assets) && release.assets.length > 0) {
-          const exeAsset = release.assets.find(a => a.name.toLowerCase().endsWith('.exe'));
-          if (exeAsset && exeAsset.browser_download_url) {
-            downloadUrl = exeAsset.browser_download_url;
-          }
-        }
+        const asset = this.pickInstallerAsset(release.assets);
+        const digest = asset && typeof asset.digest === 'string' && asset.digest.startsWith('sha256:')
+          ? asset.digest.slice(7).toLowerCase()
+          : null;
 
         updateData = {
           latestVersion: latestVer,
           releaseName: release.name || `Phiên bản v${latestVer}`,
           releaseNotes: release.body || 'Bản cập nhật cải thiện hiệu năng và sửa lỗi.',
           publishedAt: release.published_at,
-          downloadUrl: downloadUrl,
+          downloadUrl: asset ? asset.browser_download_url : (release.html_url || defaultGithubUrl),
+          size: asset ? asset.size : 0,
+          sha256: digest,
           githubUrl: release.html_url || defaultGithubUrl
         };
       }
     } catch (e) {
-      // Nếu API 404 (chưa có release) hoặc rate limit, thử fallback qua file version.json trên nhánh main
+      // API 404 (chưa có release) hoặc bị giới hạn lượt gọi -> dùng version.json
     }
 
-    // 2. Fallback sang version.json từ raw.githubusercontent.com
+    // 2. Fallback sang version.json trên nhánh main
     if (!updateData) {
       try {
         const rawJsonUrl = `https://raw.githubusercontent.com/${this.owner}/${this.repo}/main/version.json`;
@@ -136,6 +157,8 @@ class AppUpdater {
             releaseNotes: jsonInfo.releaseNotes || 'Có bản cập nhật mới.',
             publishedAt: jsonInfo.releaseDate || new Date().toISOString(),
             downloadUrl: jsonInfo.downloadUrl || defaultGithubUrl,
+            size: 0,
+            sha256: null,
             githubUrl: jsonInfo.githubUrl || defaultGithubUrl
           };
         }
@@ -145,83 +168,137 @@ class AppUpdater {
     }
 
     if (!updateData) {
-      return {
-        success: true,
-        hasUpdate: false,
-        currentVersion: this.currentVersion,
-        message: 'Bạn đang sử dụng phiên bản mới nhất.'
-      };
+      throw new Error('Không kết nối được máy chủ cập nhật GitHub. Vui lòng kiểm tra mạng Internet.');
     }
 
     const hasUpdate = this.compareVersions(updateData.latestVersion, this.currentVersion) > 0;
-
-    return {
+    const result = {
       success: true,
-      hasUpdate: hasUpdate,
+      hasUpdate,
       currentVersion: this.currentVersion,
-      latestVersion: updateData.latestVersion,
-      releaseName: updateData.releaseName,
-      releaseNotes: updateData.releaseNotes,
-      publishedAt: updateData.publishedAt,
-      downloadUrl: updateData.downloadUrl,
-      githubUrl: updateData.githubUrl,
+      ...updateData,
+      canAutoInstall: /\.exe$/i.test(new URL(updateData.downloadUrl).pathname),
       message: hasUpdate
         ? `Đã tìm thấy phiên bản mới v${updateData.latestVersion}!`
         : `Bạn đang ở phiên bản mới nhất (v${this.currentVersion}).`
     };
+
+    if (hasUpdate) {
+      this.latestInfo = result;
+      const cached = this.getCachedInstaller(result);
+      if (cached) {
+        this.downloadedFilePath = cached;
+        result.readyToInstall = true;
+      }
+    } else {
+      this.cleanupCache();
+    }
+
+    return result;
   }
 
-  // Tải file cài đặt về máy
-  downloadUpdate(downloadUrl, version) {
+  getInstallerPath(version) {
+    return path.join(this.getCacheDir(), `AirCast-Studio-Setup-${version}.exe`);
+  }
+
+  // Trả về đường dẫn bộ cài đã tải trước đó nếu còn nguyên vẹn
+  getCachedInstaller(info) {
+    const filePath = this.getInstallerPath(info.latestVersion);
+    try {
+      const stat = fs.statSync(filePath);
+      if (stat.size === 0) return null;
+      if (info.size && stat.size !== info.size) return null;
+      return filePath;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Xóa các bộ cài cũ trong cache (giữ lại bản đang dùng nếu có)
+  cleanupCache(keepPath) {
+    try {
+      const dir = this.getCacheDir();
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (full !== keepPath) {
+          try { fs.unlinkSync(full); } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+
+  sha256File(filePath) {
     return new Promise((resolve, reject) => {
-      if (!downloadUrl || !downloadUrl.startsWith('http')) {
-        return reject(new Error('Đường dẫn tải xuống không hợp lệ.'));
-      }
+      const hash = crypto.createHash('sha256');
+      fs.createReadStream(filePath)
+        .on('data', (d) => hash.update(d))
+        .on('end', () => resolve(hash.digest('hex')))
+        .on('error', reject);
+    });
+  }
 
-      // Nếu link dẫn tới trang web (không phải file trực tiếp), mở trình duyệt
-      if (!downloadUrl.toLowerCase().endsWith('.exe')) {
-        shell.openExternal(downloadUrl);
-        return resolve({ openedInBrowser: true, message: 'Đã mở trang tải về trên trình duyệt.' });
-      }
+  // Tải bộ cài về cache. Có thể gọi nhiều lần — lần sau dùng lại lượt tải đang chạy / file đã tải.
+  downloadUpdate(downloadUrl, version) {
+    const info = this.latestInfo && (!version || this.latestInfo.latestVersion === version)
+      ? this.latestInfo
+      : { latestVersion: version || 'new', downloadUrl, size: 0, sha256: null };
+    const url = downloadUrl || info.downloadUrl;
 
-      const tempDir = app.getPath('temp');
-      const fileName = `AirCast-Studio-Update-v${version || 'new'}.exe`;
-      const savePath = path.join(tempDir, fileName);
-      this.downloadedFilePath = savePath;
+    if (!url || !/^https?:/i.test(url)) {
+      return Promise.reject(new Error('Đường dẫn tải xuống không hợp lệ.'));
+    }
 
-      const fileStream = fs.createWriteStream(savePath);
+    // Link không phải file .exe (trang release) -> mở trình duyệt
+    if (!/\.exe$/i.test(new URL(url).pathname)) {
+      if (shell) shell.openExternal(info.githubUrl || url);
+      return Promise.resolve({ success: false, openedInBrowser: true, message: 'Đã mở trang tải về trên trình duyệt.' });
+    }
+
+    const cached = this.getCachedInstaller(info);
+    if (cached) {
+      this.downloadedFilePath = cached;
+      this.notifyProgress({ percent: 100, receivedBytes: info.size || 0, totalBytes: info.size || 0, speedBytesPerSec: 0 });
+      return Promise.resolve({ success: true, filePath: cached, message: 'Bản cập nhật đã sẵn sàng.' });
+    }
+
+    if (this.activeDownload) return this.activeDownload;
+
+    const savePath = this.getInstallerPath(info.latestVersion);
+    const partPath = savePath + '.part';
+    this.cleanupCache();
+
+    this.activeDownload = new Promise((resolve, reject) => {
+      const fail = (err) => {
+        this.activeDownloadRequest = null;
+        fs.unlink(partPath, () => {});
+        reject(err);
+      };
 
       const downloadWithRedirect = (targetUrl, maxRedirects = 6) => {
         if (maxRedirects <= 0) {
-          fileStream.close();
-          fs.unlink(savePath, () => {});
-          return reject(new Error('Quá nhiều chuyển hướng khi tải file.'));
+          return fail(new Error('Quá nhiều chuyển hướng khi tải file.'));
         }
 
         const client = targetUrl.startsWith('https:') ? https : http;
         const req = client.get(targetUrl, {
-          headers: {
-            'User-Agent': `AirCast-Studio/${this.currentVersion} (Windows)`
-          }
+          headers: { 'User-Agent': `AirCast-Studio/${this.currentVersion} (Windows)` }
         }, (res) => {
           if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            const nextUrl = res.headers.location.startsWith('http')
-              ? res.headers.location
-              : new URL(res.headers.location, targetUrl).href;
-            return downloadWithRedirect(nextUrl, maxRedirects - 1);
+            res.resume();
+            return downloadWithRedirect(new URL(res.headers.location, targetUrl).href, maxRedirects - 1);
           }
 
           if (res.statusCode !== 200) {
-            fileStream.close();
-            fs.unlink(savePath, () => {});
-            return reject(new Error(`Tải file thất bại với mã lỗi HTTP: ${res.statusCode}`));
+            res.resume();
+            return fail(new Error(`Tải file thất bại với mã lỗi HTTP: ${res.statusCode}`));
           }
 
-          const totalBytes = parseInt(res.headers['content-length'] || '0', 10);
+          const totalBytes = parseInt(res.headers['content-length'] || '0', 10) || info.size || 0;
           let receivedBytes = 0;
           let lastTime = Date.now();
           let bytesSinceLastTime = 0;
-          let currentSpeed = 0; // bytes/sec
+
+          const fileStream = fs.createWriteStream(partPath);
 
           res.on('data', (chunk) => {
             receivedBytes += chunk.length;
@@ -229,63 +306,64 @@ class AppUpdater {
 
             const now = Date.now();
             if (now - lastTime >= 400) {
-              currentSpeed = (bytesSinceLastTime / (now - lastTime)) * 1000;
+              const speed = (bytesSinceLastTime / (now - lastTime)) * 1000;
               lastTime = now;
               bytesSinceLastTime = 0;
-
-              const percent = totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 0;
               this.notifyProgress({
-                percent,
+                percent: totalBytes > 0 ? Math.min(99, Math.round((receivedBytes / totalBytes) * 100)) : 0,
                 receivedBytes,
                 totalBytes,
-                speedBytesPerSec: Math.round(currentSpeed)
+                speedBytesPerSec: Math.round(speed)
               });
             }
           });
 
-          res.pipe(fileStream);
+          res.on('aborted', () => fail(new Error('Kết nối bị ngắt khi đang tải.')));
+          fileStream.on('error', fail);
 
-          fileStream.on('finish', () => {
-            fileStream.close(() => {
-              this.notifyProgress({
-                percent: 100,
-                receivedBytes,
-                totalBytes: totalBytes || receivedBytes,
-                speedBytesPerSec: 0
-              });
-              resolve({
-                success: true,
-                filePath: savePath,
-                message: 'Tải xuống bản cập nhật thành công!'
-              });
-            });
+          fileStream.on('finish', async () => {
+            try {
+              if (totalBytes && receivedBytes !== totalBytes) {
+                return fail(new Error('File tải về không đầy đủ, vui lòng thử lại.'));
+              }
+              if (info.sha256) {
+                const actual = await this.sha256File(partPath);
+                if (actual !== info.sha256) {
+                  return fail(new Error('File tải về bị lỗi (sai mã kiểm tra SHA-256), vui lòng thử lại.'));
+                }
+              }
+              fs.renameSync(partPath, savePath);
+              this.activeDownloadRequest = null;
+              this.downloadedFilePath = savePath;
+              this.notifyProgress({ percent: 100, receivedBytes, totalBytes: totalBytes || receivedBytes, speedBytesPerSec: 0 });
+              resolve({ success: true, filePath: savePath, message: 'Tải xuống bản cập nhật thành công!' });
+            } catch (err) {
+              fail(err);
+            }
           });
+
+          res.pipe(fileStream);
         });
 
-        req.on('error', (err) => {
-          fileStream.close();
-          fs.unlink(savePath, () => {});
-          reject(err);
-        });
-
+        req.on('error', fail);
+        req.setTimeout(30000, () => req.destroy(new Error('Mạng quá chậm hoặc mất kết nối khi tải bản cập nhật.')));
         this.activeDownloadRequest = req;
       };
 
-      downloadWithRedirect(downloadUrl);
+      downloadWithRedirect(url);
+    }).finally(() => {
+      this.activeDownload = null;
     });
+
+    return this.activeDownload;
   }
 
   cancelDownload() {
     if (this.activeDownloadRequest) {
       try {
-        this.activeDownloadRequest.destroy();
-        this.activeDownloadRequest = null;
+        this.activeDownloadRequest.destroy(new Error('Đã hủy tải bản cập nhật.'));
       } catch (e) {}
-    }
-    if (this.downloadedFilePath && fs.existsSync(this.downloadedFilePath)) {
-      try {
-        fs.unlinkSync(this.downloadedFilePath);
-      } catch (e) {}
+      this.activeDownloadRequest = null;
     }
     return { success: true };
   }
@@ -296,32 +374,50 @@ class AppUpdater {
     }
   }
 
-  // Thực thi cài đặt file update và thoát ứng dụng cũ
-  installUpdate(filePath) {
+  // Chạy bộ cài NSIS ở chế độ im lặng rồi thoát app.
+  //   --updated   : báo cho bộ cài biết đây là bản nâng cấp (giữ nguyên shortcut, thư mục cài)
+  //   /S          : cài im lặng, không hiện wizard
+  //   --force-run : cài xong tự mở lại AirCast Studio
+  // Start-Process -Verb RunAs dùng ShellExecute nên Windows tự hiện hộp UAC (bộ cài perMachine cần quyền Admin).
+  runInstallerElevated(filePath) {
+    const psPath = filePath.replace(/'/g, "''");
+    // 1223 = ERROR_CANCELLED: người dùng bấm "No" ở hộp UAC
+    const command = '$ErrorActionPreference = "Stop"; '
+      + `try { Start-Process -FilePath '${psPath}' -ArgumentList '--updated','/S','--force-run' -Verb RunAs; exit 0 } `
+      + 'catch { $e = $_.Exception; while ($e) { if ($e.NativeErrorCode -eq 1223) { exit 1223 }; $e = $e.InnerException }; [Console]::Error.WriteLine($_.Exception.Message); exit 1 }';
+
+    return new Promise((resolve) => {
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
+        { windowsHide: true },
+        (err, _stdout, stderr) => {
+          if (!err) return resolve({ ok: true });
+          resolve({ ok: false, cancelled: err.code === 1223, error: (stderr || err.message || '').trim() });
+        });
+    });
+  }
+
+  async installUpdate(filePath) {
     const targetFile = filePath || this.downloadedFilePath;
     if (!targetFile || !fs.existsSync(targetFile)) {
-      return { success: false, error: 'Không tìm thấy file cài đặt cập nhật.' };
+      return { success: false, error: 'Không tìm thấy file cài đặt cập nhật. Vui lòng tải lại.' };
     }
 
-    try {
-      // Khởi chạy file installer độc lập trong tiến trình riêng của Windows
-      const installerProcess = spawn(targetFile, [], {
-        detached: true,
-        stdio: 'ignore'
-      });
-      installerProcess.unref();
-
-      // Thoát ứng dụng hiện tại sau 800ms để trình cài đặt chạy nâng cấp
-      setTimeout(() => {
-        app.quit();
-      }, 800);
-
-      return { success: true, message: 'Đang khởi chạy trình cập nhật...' };
-    } catch (err) {
-      // Fallback mở file qua Windows Explorer
-      shell.openPath(targetFile);
-      return { success: true, message: 'Đã mở file cài đặt qua Windows Explorer.' };
+    const result = await this.runInstallerElevated(targetFile);
+    if (!result.ok) {
+      if (result.cancelled) {
+        return { success: false, cancelled: true, error: 'Bạn đã từ chối cấp quyền Admin. Bấm "Cập nhật ngay" để thử lại.' };
+      }
+      return { success: false, error: 'Không khởi chạy được bộ cài: ' + result.error };
     }
+
+    // Bộ cài đã chạy ngầm -> thoát app ngay để nó ghi đè file.
+    // before-quit trong index.js sẽ dừng AirPlayServer / Mouse server.
+    setTimeout(() => {
+      if (app && app.quit) app.quit();
+      else process.exit(0);
+    }, 300);
+
+    return { success: true, message: 'Đang cài đặt bản mới, ứng dụng sẽ tự mở lại sau ít giây...' };
   }
 }
 

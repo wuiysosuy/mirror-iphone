@@ -1,6 +1,6 @@
 {
   "name": "aircast-studio",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Ứng dụng phản chiếu màn hình iPhone lên máy tính qua AirPlay 2",
   "main": "src/main/index.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "dev": "electron . --debug",
     "dist": "electron-builder --win",
     "dist:portable": "electron-builder --win portable",
-    "dist:installer": "electron-builder --win nsis"
+    "dist:installer": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis --publish always"
   },
   "keywords": [
     "airplay",
@@ -44,7 +45,8 @@
       {
         "provider": "github",
         "owner": "wuiysosuy",
-        "repo": "mirror-iphone"
+        "repo": "mirror-iphone",
+        "releaseType": "release"
       }
     ],
     "extraResources": [
@@ -84,9 +86,10 @@
       ]
     },
     "nsis": {
-      "oneClick": false,
+      "artifactName": "AirCast-Studio-Setup-${version}.${ext}",
+      "oneClick": true,
       "perMachine": true,
-      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "AirCast Studio",

@@ -1,8 +1,8 @@
 {
-  "version": "1.1.1",
-  "releaseName": "AirCast Studio v1.1.1 - Quét Tương Thích Bluetooth & Khóa An Toàn",
+  "version": "1.1.2",
+  "releaseName": "AirCast Studio v1.1.2 - Cập Nhật 1 Chạm",
   "releaseDate": "2026-09-30",
-  "releaseNotes": "• Tự động quét kiểm tra 6 tiêu chuẩn phần cứng Bluetooth trên máy tính PC\n• Khóa tính năng chuột an toàn và cảnh báo nếu hệ điều hành Windows chặn phát sóng ngoại vi (Lỗi Aborted)\n• Bảng chẩn đoán trực quan với checklist xanh/đỏ và hướng dẫn chi tiết trang bị USB Bluetooth 5.0/5.3\n• Sửa lỗi hiển thị tiếng Việt UTF-8 sắc nét, không bị vỡ font\n• Tối ưu start.bat tự động nhận đường dẫn Node.js portable",
-  "downloadUrl": "https://github.com/wuiysosuy/mirror-iphone/releases/download/v1.1.1/AirCast.Studio.Setup.1.1.1.exe",
+  "releaseNotes": "• Cập nhật 1 chạm: ứng dụng tự tải bản mới ngầm, bấm \"Cập Nhật Ngay\" là tự cài và tự mở lại\n• Bộ cài không còn các bước Next/Chọn thư mục rườm rà\n• Kiểm tra toàn vẹn file tải về (SHA-256), tự dọn bộ cài cũ\n• Sửa lỗi cài đè bị kẹt do AirPlayServer còn chạy, không nhân bản rule tường lửa",
+  "downloadUrl": "https://github.com/wuiysosuy/mirror-iphone/releases/download/v1.1.2/AirCast-Studio-Setup-1.1.2.exe",
   "githubUrl": "https://github.com/wuiysosuy/mirror-iphone/releases"
 }
